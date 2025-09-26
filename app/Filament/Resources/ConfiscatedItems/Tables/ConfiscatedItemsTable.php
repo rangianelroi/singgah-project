@@ -1,0 +1,129 @@
+<?php
+
+namespace App\Filament\Resources\ConfiscatedItems\Tables;
+
+use Filament\Actions\BulkActionGroup;
+use Filament\Actions\DeleteBulkAction;
+use Filament\Actions\Action;
+use Filament\Actions\ViewAction;
+use Filament\Actions\EditAction;
+use Filament\Actions\DeleteAction;
+use Filament\Tables\Columns\ImageColumn;
+use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Table;
+use Filament\Schemas\Components\Wizard;
+use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Toggle;
+use Filament\Forms\Get;
+use Filament\Schemas\Components\Wizard\Step;
+
+class ConfiscatedItemsTable
+{
+    public static function configure(Table $table): Table
+    {
+        return $table
+            ->columns([
+                ImageColumn::make('item_image_path')
+                    ->label('Gambar Barang')
+                    ->disk('local'),
+                TextColumn::make('category')
+                    ->badge(),
+                TextColumn::make('item_name')
+                        ->searchable()
+                        ->sortable()
+                        ->label('Nama Barang'),
+                        TextColumn::make('passenger.full_name')
+                    ->label('Nama Penumpang')
+                    ->searchable(),
+                TextColumn::make('flight.airline.code')
+                    ->label('Kode Airline')
+                    ->badge(), 
+                TextColumn::make('flight.flight_number')
+                    ->label('Nomor Penerbangan'),
+                TextColumn::make('created_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+                TextColumn::make('updated_at')
+                    ->dateTime()
+                    ->sortable()
+                    ->toggleable(isToggledHiddenByDefault: true),
+            ])
+            ->filters([
+                //
+            ])
+            ->recordActions([
+                ViewAction::make(),
+                EditAction::make(),
+                DeleteAction::make(),
+                Action::make('approve')
+                    ->label('Setujui')
+                    ->icon('heroicon-o-check-circle')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->form([
+                        // Wizard untuk membuat alur multi-langkah
+                        Wizard::make([
+                            Step::make('Konfirmasi Pengambilan')
+                                ->schema([
+                                    Toggle::make('is_picked_up_by_relative')
+                                        ->label('Apakah barang ini akan diambil oleh kerabat dalam 1x24 jam?')
+                                        ->onIcon('heroicon-o-check')
+                                        ->offIcon('heroicon-o-x-mark')
+                                        ->reactive(), // Membuat form bereaksi saat tombol ini diubah
+                                ]),
+                            
+                            Step::make('Data Kerabat')
+                                ->schema([
+                                    TextInput::make('pickup_by_name')
+                                        ->label('Nama Lengkap Pengambil')
+                                        ->required(),
+                                    TextInput::make('pickup_by_identity_number')
+                                        ->label('No. Identitas (KTP/Paspor)')
+                                        ->required(),
+                                    TextInput::make('relationship_to_passenger')
+                                        ->label('Hubungan dengan Penumpang')
+                                        ->required(),
+                                ])
+                                // Langkah ini hanya akan muncul jika Toggle di atas diaktifkan
+                                ->visible(fn (Get $get) => $get('is_picked_up_by_relative')),
+                        ])
+                    ])
+                    ->action(function ($record, array $data) {
+                        // Logika baru saat form di-submit
+                        if ($data['is_picked_up_by_relative']) {
+                            // Jika ya, buat catatan pengambilan dan log status
+                            $record->pickups()->create([
+                                'pickup_by_name' => $data['pickup_by_name'],
+                                'pickup_by_identity_number' => $data['pickup_by_identity_number'],
+                                'relationship_to_passenger' => $data['relationship_to_passenger'],
+                                'verified_by_user_id' => auth()->id(),
+                                'pickup_timestamp' => now(),
+                            ]);
+
+                            $record->statusLogs()->create([
+                                'status' => 'PENDING_PICKUP',
+                                'user_id' => auth()->id(),
+                                'notes' => 'Menunggu pengambilan oleh kerabat: ' . $data['pickup_by_name'],
+                            ]);
+                        } else {
+                            // Jika tidak, cukup buat log status
+                            $record->statusLogs()->create([
+                                'status' => 'VERIFIED_FOR_STORAGE',
+                                'user_id' => auth()->id(),
+                                'notes' => 'Barang diverifikasi untuk disimpan di gudang.',
+                            ]);
+                        }
+                    })
+                    ->visible(function ($record) {
+                        $latestStatus = $record->statusLogs()->latest()->first();
+                        return $latestStatus?->status === 'RECORDED';
+                    }),
+            ])
+            ->toolbarActions([
+                BulkActionGroup::make([
+                    DeleteBulkAction::make(),
+                ]),
+            ]);
+    }
+}
