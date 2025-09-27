@@ -1,8 +1,8 @@
 <?php
 
-namespace Database\Seeders; // <-- Pastikan baris ini ada
+namespace Database\Seeders; 
 
-use Illuminate\Database\Seeder; // <-- INI YANG HILANG
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
@@ -39,6 +39,26 @@ class UserSeeder extends Seeder
                 'email' => 'squadleader@singgah.test',
                 'password' => Hash::make('password'),
                 'role' => 'squad_leader_avsec',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            // 4. Team Leader Investigasi
+            [
+                'name' => 'Team Leader Investigasi 01',
+                'employee_id' => 'TLI01',
+                'email' => 'investigasi@singgah.test',
+                'password' => Hash::make('password'),
+                'role' => 'team_leader_avsec',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            // 5. Dept Head AVSEC
+            [
+                'name' => 'Dept Head AVSEC',
+                'employee_id' => 'DHAVSEC01',
+                'email' => 'depthead@singgah.test',
+                'password' => Hash::make('password'),
+                'role' => 'department_head_avsec',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],

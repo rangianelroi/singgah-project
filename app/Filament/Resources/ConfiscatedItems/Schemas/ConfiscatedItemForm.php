@@ -76,6 +76,12 @@ class ConfiscatedItemForm
                             ->label('Catatan Tambahan')
                             ->default(null)
                             ->columnSpanFull(),
+                        TextInput::make('storage_location')
+                            ->label('Lokasi Penyimpanan di Gudang')
+                            // Sembunyikan field ini di halaman "Create"
+                            ->hiddenOn('create')
+                            // Tampilkan HANYA JIKA peran user sesuai
+                            ->visible(fn () => auth()->user()->role === 'team_leader_avsec' || auth()->user()->role === 'admin'),
                     ])->columns(2) ->columnSpanFull(),
             ]);
     }

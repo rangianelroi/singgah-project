@@ -17,8 +17,8 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             UserSeeder::class,
-            // Anda bisa tambahkan seeder lain di sini nanti
-            // AirlineSeeder::class, 
+            AirlineSeeder::class,
+            AirportSeeder::class, 
         ]);
     }
 }

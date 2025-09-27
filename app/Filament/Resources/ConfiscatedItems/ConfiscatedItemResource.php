@@ -8,6 +8,9 @@ use App\Filament\Resources\ConfiscatedItems\Pages\ListConfiscatedItems;
 use App\Filament\Resources\ConfiscatedItems\Schemas\ConfiscatedItemForm;
 use App\Filament\Resources\ConfiscatedItems\Tables\ConfiscatedItemsTable;
 use App\Filament\Resources\ConfiscatedItems\RelationManagers\StatusLogsRelationManager;
+use App\Filament\Resources\ConfiscatedItems\RelationManagers\PickupsRelationManager;
+use App\Filament\Resources\ConfiscatedItems\RelationManagers\ShipmentRelationManager;
+use App\Filament\Resources\ConfiscatedItems\RelationManagers\DisposalRelationManager;
 use App\Models\ConfiscatedItem;
 use BackedEnum;
 use Filament\Resources\Resource;
@@ -37,6 +40,9 @@ class ConfiscatedItemResource extends Resource
         return [
             // PASTIKAN BARIS INI ADA DAN TIDAK DI-KOMENTAR
             StatusLogsRelationManager::class,
+            PickupsRelationManager::class,
+            ShipmentRelationManager::class,
+            DisposalRelationManager::class,
         ];
     }
 

@@ -11,10 +11,11 @@ use Filament\Actions\DeleteAction;
 use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-use Filament\Schemas\Components\Wizard;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Toggle;
-use Filament\Forms\Get;
+use Filament\Forms\Components\FileUpload;
+use Filament\Schemas\Components\Wizard;
+use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Wizard\Step;
 
 class ConfiscatedItemsTable
@@ -84,6 +85,18 @@ class ConfiscatedItemsTable
                                     TextInput::make('relationship_to_passenger')
                                         ->label('Hubungan dengan Penumpang')
                                         ->required(),
+                                    FileUpload::make('photo_of_recipient_path')
+                                        ->label('Foto Pengambil (Selfie dengan Identitas)')
+                                        ->image()
+                                        ->disk('local')
+                                        ->directory('pickup-photos')
+                                        ->required(),
+                                    FileUpload::make('photo_of_identity_path')
+                                        ->label('Foto Identitas (KTP/Paspor)')
+                                        ->image()
+                                        ->disk('local')
+                                        ->directory('identity-photos')
+                                        ->required(),
                                 ])
                                 // Langkah ini hanya akan muncul jika Toggle di atas diaktifkan
                                 ->visible(fn (Get $get) => $get('is_picked_up_by_relative')),
@@ -97,6 +110,8 @@ class ConfiscatedItemsTable
                                 'pickup_by_name' => $data['pickup_by_name'],
                                 'pickup_by_identity_number' => $data['pickup_by_identity_number'],
                                 'relationship_to_passenger' => $data['relationship_to_passenger'],
+                                'photo_of_recipient_path' => $data['photo_of_recipient_path'],
+                                'photo_of_identity_path' => $data['photo_of_identity_path'],
                                 'verified_by_user_id' => auth()->id(),
                                 'pickup_timestamp' => now(),
                             ]);
@@ -117,7 +132,9 @@ class ConfiscatedItemsTable
                     })
                     ->visible(function ($record) {
                         $latestStatus = $record->statusLogs()->latest()->first();
-                        return $latestStatus?->status === 'RECORDED';
+                         $userRole = auth()->user()->role;
+                        return $latestStatus?->status === 'RECORDED' && 
+                        in_array($userRole, ['squad_leader_avsec', 'admin']);;
                     }),
             ])
             ->toolbarActions([
