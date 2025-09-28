@@ -18,6 +18,8 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use App\Filament\Widgets\PendingVerificationWidget;
+use App\Filament\Widgets\OperatorActionsWidget;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -28,9 +30,26 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login()
+            // 1. Atur Skema Warna
             ->colors([
-                'primary' => Color::Amber,
+                'primary' => Color::Amber, // Warna oranye/kuning seperti di desain Anda
             ])
+
+            // 2. Ganti Nama Brand
+            ->brandName('SINGGAH')
+
+            // 3. Atur Logo (jika Anda punya file logo)
+            // ->brandLogo(asset('images/logo.svg')) 
+            
+            // 4. Atur Favicon (ikon di tab browser)
+            // ->favicon(asset('images/favicon.png'))
+
+            // 5. Jadikan Mode Gelap sebagai Default
+            ->darkMode(true)
+
+            // 6. Atur Font (opsional, jika ingin mengganti)
+            ->font('Poppins')
+
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -40,6 +59,8 @@ class AdminPanelProvider extends PanelProvider
             ->widgets([
                 AccountWidget::class,
                 FilamentInfoWidget::class,
+                PendingVerificationWidget::class,
+                OperatorActionsWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

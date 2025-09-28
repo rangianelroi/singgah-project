@@ -80,7 +80,6 @@ class PickupsRelationManager extends RelationManager
             ->recordActions([
                 EditAction::make(),
                 ViewAction::make(),
-                DissociateAction::make(),
                 DeleteAction::make(),
                 Action::make('confirm_handover')
                 ->label('Konfirmasi Serah Terima')
@@ -103,7 +102,6 @@ class PickupsRelationManager extends RelationManager
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
-                    DissociateBulkAction::make(),
                     DeleteBulkAction::make(),
                 ]),
             ]);

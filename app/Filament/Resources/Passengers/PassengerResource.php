@@ -45,4 +45,10 @@ class PassengerResource extends Resource
             'edit' => EditPassenger::route('/{record}/edit'),
         ];
     }
+
+    public static function shouldRegisterNavigation(): bool
+    {
+        // Hanya tampilkan menu navigasi ini jika peran pengguna adalah 'admin'.
+        return auth()->user()->role === 'admin';
+    }
 }

@@ -8,6 +8,7 @@ use Filament\Actions\CreateAction;
 use Filament\Actions\DeleteAction;
 use Filament\Actions\DeleteBulkAction;
 use Filament\Actions\EditAction;
+use Filament\Actions\Action;
 use Filament\Forms\Components\TextInput;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
@@ -17,6 +18,7 @@ use Filament\Forms\Components\Select;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\DatePicker;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\DisposalRecord;
 
 class DisposalRelationManager extends RelationManager
 {
@@ -25,7 +27,7 @@ class DisposalRelationManager extends RelationManager
     public static function canViewForRecord(Model $ownerRecord, string $pageClass): bool
     {
         $userRole = auth()->user()->role;
-        return in_array($userRole, ['team_leader_avsec', 'admin']);
+        return in_array($userRole, ['team_leader_avsec', 'admin', 'department_head_avsec']);
     }
 
     public function form(Schema $schema): Schema
@@ -71,6 +73,13 @@ class DisposalRelationManager extends RelationManager
             ->recordActions([
                 EditAction::make(),
                 DeleteAction::make(),
+                Action::make('downloadReport')
+                ->label('Cetak PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('success')
+                ->url(fn (DisposalRecord $record) => route('disposal.report.download', $record))
+                ->openUrlInNewTab()
+                ->visible(fn (): bool => auth()->user()->role === 'department_head_avsec'),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([

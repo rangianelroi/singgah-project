@@ -17,6 +17,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Schemas\Components\Wizard;
 use Filament\Schemas\Components\Utilities\Get;
 use Filament\Schemas\Components\Wizard\Step;
+use App\Models\ConfiscatedItem;
 
 class ConfiscatedItemsTable
 {
@@ -33,7 +34,12 @@ class ConfiscatedItemsTable
                         ->searchable()
                         ->sortable()
                         ->label('Nama Barang'),
-                        TextColumn::make('passenger.full_name')
+                TextColumn::make('storage_status.status')
+                    ->badge()
+                    ->color(fn ($record) => $record->storage_status['color'])
+                    ->formatStateUsing(fn ($record) => $record->storage_status['status'] . ' (' . $record->storage_status['remaining'] . ' hari)')
+                    ->label('Status Simpan'),
+                TextColumn::make('passenger.full_name')
                     ->label('Nama Penumpang')
                     ->searchable(),
                 TextColumn::make('flight.airline.code')
@@ -135,6 +141,28 @@ class ConfiscatedItemsTable
                          $userRole = auth()->user()->role;
                         return $latestStatus?->status === 'RECORDED' && 
                         in_array($userRole, ['squad_leader_avsec', 'admin']);;
+                    }),
+                Action::make('whatsapp')
+                    ->label('Chat WA')
+                    ->icon('heroicon-o-chat-bubble-left-right')
+                    ->color('success')
+                    ->url(function (ConfiscatedItem $record): ?string {
+                        $passengerPhone = $record->passenger->phone_number;
+                        if (!$passengerPhone) return null;
+                        $message = "Selamat pagi/siang Bpk/Ibu {$record->passenger->full_name}, kami dari AVSEC Bandara Sam Ratulangi ingin menginformasikan mengenai barang Anda '{$record->item_name}'...";
+                        return "https://wa.me/{$passengerPhone}?text=" . urlencode($message);
+                    })
+                    ->openUrlInNewTab()
+                    ->visible(fn (ConfiscatedItem $record): bool => !empty($record->passenger->phone_number))
+                    ->visible(function (ConfiscatedItem $record): bool {
+                        // Ambil peran user yang sedang login
+                        $userRole = auth()->user()->role;
+
+                        // Tombol hanya akan muncul jika:
+                        // 1. Nomor telepon penumpang ada, DAN
+                        // 2. Peran user adalah 'team_leader_investigasi' atau 'admin'
+                        return !empty($record->passenger->phone_number) && 
+                            in_array($userRole, ['team_leader_avsec', 'admin']);
                     }),
             ])
             ->toolbarActions([

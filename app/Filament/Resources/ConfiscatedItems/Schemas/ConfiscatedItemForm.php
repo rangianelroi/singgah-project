@@ -2,87 +2,75 @@
 
 namespace App\Filament\Resources\ConfiscatedItems\Schemas;
 
+use Filament\Schemas\Schema;
 use Filament\Schemas\Components\Section;
-use Filament\Forms\Components\DateTimePicker;
+use Filament\Forms\Components\Placeholder;
+use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Select;
-use Filament\Forms\Components\TextInput;
-use Filament\Forms\Components\Textarea;
-use Filament\Schemas\Schema;
+use Filament\Forms\Components\TextArea;
+
 
 class ConfiscatedItemForm
 {
+
+    protected static ?string $model = ConfiscatedItem::class;
+    
+    protected static ?string $navigationIcon = 'heroicon-o-archive-box';
+
     public static function configure(Schema $schema): Schema
     {
         return $schema
             ->components([
-                Section::make('Informasi Penumpang')
+                Section::make('Data Penumpang')
                     ->schema([
-                        Select::make('passenger_id')
-                            ->relationship('passenger', 'full_name')
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->label('Penumpang'),
-                        Select::make('flight_id')
-                            ->relationship('flight') // Hapus argumen kedua
-                            // Buat label kustom untuk setiap pilihan
-                            ->getOptionLabelFromRecordUsing(fn ($record) => 
-                                "{$record->airline->code} {$record->flight_number} - {$record->destination->iata_code}"
-                            )
-                            ->searchable()
-                            ->preload()
-                            ->required()
-                            ->label('Penerbangan'),
-                    ])->columns(2)->columnSpanFull(),
-                
-                Section::make('Detail Barang Tertahan')
+                        Placeholder::make('passenger_name')->label('Nama Lengkap')->content(fn ($record) => $record->passenger?->full_name),
+                        Placeholder::make('passenger_identity')->label('No. Identitas')->content(fn ($record) => $record->passenger?->identity_number),
+                        Placeholder::make('flight_details')
+                        ->label('Nomor Penerbangan')
+                        ->content(fn ($record) => $record->flight?->fullFlightNumber), 
+                    ])->columnSpanFull(),
+                Section::make('Detail Barang Sitaan')
                     ->schema([
                         TextInput::make('item_name')
-                            ->required()
-                            ->columnSpanFull()
-                            ->label('Nama Barang'),
-                        FileUpload::make('item_image_path')
-                            ->image()
-                            ->label('Gambar Barang')
-                            ->disk('local')
-                            ->directory('confiscated_items')
-                            ->columnSpanFull(),
-                        Select::make('category')
-                            ->options([
-                                        'dangerous_goods' => 'Dangerous goods',
-                                        'prohibited_items' => 'Prohibited items',
-                                        'security_items' => 'Security items',
-                                        'other' => 'Other',
-                                    ])
-                            ->required()
-                            ->label('Kategori Barang')
-                            ->columnSpanFull(),
-                        DateTimePicker::make('confiscation_date')
-                            ->label('Tanggal Pencatatan')
-                            ->default(now())
-                            ->required()
-                            ->columnSpanFull(),
-                        TextInput::make('item_quantity')
-                            ->required()
-                            ->numeric()
-                            ->default(1)
-                            ->label('Jumlah Barang'),
-                        TextInput::make('item_unit')
-                            ->required()
-                            ->default('unit')
-                            ->label('Satuan Barang'),
-                        Textarea::make('notes')
-                            ->label('Catatan Tambahan')
-                            ->default(null)
-                            ->columnSpanFull(),
-                        TextInput::make('storage_location')
-                            ->label('Lokasi Penyimpanan di Gudang')
-                            // Sembunyikan field ini di halaman "Create"
-                            ->hiddenOn('create')
-                            // Tampilkan HANYA JIKA peran user sesuai
-                            ->visible(fn () => auth()->user()->role === 'team_leader_avsec' || auth()->user()->role === 'admin'),
-                    ])->columns(2) ->columnSpanFull(),
-            ]);
+                                ->required()
+                                ->columnSpanFull()
+                                ->label('Nama Barang'),
+                            FileUpload::make('item_image_path')
+                                ->image()
+                                ->label('Gambar Barang')
+                                ->disk('local')
+                                ->directory('confiscated_items')
+                                ->columnSpanFull(),
+                            Select::make('category')
+                                ->options([
+                                            'dangerous_goods' => 'Dangerous goods',
+                                            'prohibited_items' => 'Prohibited items',
+                                            'security_items' => 'Security items',
+                                            'other' => 'Other',
+                                        ])
+                                ->required()
+                                ->label('Kategori Barang')
+                                ->columnSpanFull(),
+                            Placeholder::make('confiscation_date')
+                                ->label('Tanggal Pencatatan')
+                                ->default(now())
+                                ->columnSpanFull(),
+                            TextInput::make('item_quantity')
+                                ->required()
+                                ->numeric()
+                                ->default(1)
+                                ->label('Jumlah Barang'),
+                            TextInput::make('item_unit')
+                                ->required()
+                                ->default('unit')
+                                ->label('Satuan Barang'),
+                            Textarea::make('notes')
+                                ->label('Catatan Tambahan')
+                                ->default(null)
+                                ->columnSpanFull(),
+                        TextInput::make('storage_location')->label('Lokasi Penyimpanan di Gudang')->visible(fn () => in_array(auth()->user()->role, ['team_leader_avsec', 'admin'])),
+                    ])->columnSpanFull(),
+                ]);
     }
 }
