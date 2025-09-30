@@ -153,17 +153,7 @@ class ConfiscatedItemsTable
                         return "https://wa.me/{$passengerPhone}?text=" . urlencode($message);
                     })
                     ->openUrlInNewTab()
-                    ->visible(fn (ConfiscatedItem $record): bool => !empty($record->passenger->phone_number))
-                    ->visible(function (ConfiscatedItem $record): bool {
-                        // Ambil peran user yang sedang login
-                        $userRole = auth()->user()->role;
-
-                        // Tombol hanya akan muncul jika:
-                        // 1. Nomor telepon penumpang ada, DAN
-                        // 2. Peran user adalah 'team_leader_investigasi' atau 'admin'
-                        return !empty($record->passenger->phone_number) && 
-                            in_array($userRole, ['team_leader_avsec', 'admin']);
-                    }),
+                    ->visible(fn (ConfiscatedItem $record): bool => !empty($record->passenger->phone_number)),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
