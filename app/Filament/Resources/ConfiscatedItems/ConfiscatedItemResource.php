@@ -11,6 +11,8 @@ use App\Filament\Resources\ConfiscatedItems\RelationManagers\StatusLogsRelationM
 use App\Filament\Resources\ConfiscatedItems\RelationManagers\PickupsRelationManager;
 use App\Filament\Resources\ConfiscatedItems\RelationManagers\ShipmentRelationManager;
 use App\Filament\Resources\ConfiscatedItems\RelationManagers\DisposalRelationManager;
+use App\Filament\Resources\ConfiscatedItems\RelationManagers\CommunicationLogsRelationManager;
+
 use App\Filament\Resources\ConfiscatedItems\Schemas\ConfiscatedItemForm;
 use App\Filament\Resources\ConfiscatedItems\Tables\ConfiscatedItemsTable;
 use Filament\Resources\Resource;
@@ -44,6 +46,7 @@ class ConfiscatedItemResource extends Resource
             PickupsRelationManager::class,
             ShipmentRelationManager::class,
             DisposalRelationManager::class,
+            CommunicationLogsRelationManager::class,
         ];
     }
 

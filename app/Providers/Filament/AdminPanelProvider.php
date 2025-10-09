@@ -20,6 +20,12 @@ use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use App\Filament\Widgets\PendingVerificationWidget;
 use App\Filament\Widgets\OperatorActionsWidget;
+use App\Filament\Widgets\StorageManagementWidget;
+use App\Filament\Widgets\InStorageItemsWidget;
+use App\Filament\Widgets\DisposalWidget;
+use App\Filament\Widgets\ShipmentConfirmationWidget;
+use App\Filament\Widgets\Stats\GlobalStatsWidget;
+use App\Filament\Widgets\Charts\ItemsByCategoryChart;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -57,10 +63,16 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
+                ItemsByCategoryChart::class,
                 AccountWidget::class,
                 FilamentInfoWidget::class,
                 PendingVerificationWidget::class,
                 OperatorActionsWidget::class,
+                StorageManagementWidget::class,  
+                InStorageItemsWidget::class,
+                DisposalWidget::class,
+                GlobalStatsWidget::class,
+                ShipmentConfirmationWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

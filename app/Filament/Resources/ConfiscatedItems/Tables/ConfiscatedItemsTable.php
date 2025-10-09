@@ -26,6 +26,8 @@ class ConfiscatedItemsTable
         return $table
             ->columns([
                 ImageColumn::make('item_image_path')
+                    ->imageHeight(40)
+                    ->circular()
                     ->label('Gambar Barang')
                     ->disk('local'),
                 TextColumn::make('category')
@@ -39,6 +41,24 @@ class ConfiscatedItemsTable
                     ->color(fn ($record) => $record->storage_status['color'])
                     ->formatStateUsing(fn ($record) => $record->storage_status['status'] . ' (' . $record->storage_status['remaining'] . ' hari)')
                     ->label('Status Simpan'),
+                TextColumn::make('latestStatusLog.status')
+                    ->label('Status Terakhir')
+                    ->badge()
+                    ->color(fn (string $state): string => match ($state) {
+                        'RECORDED' => 'gray',
+                        'VERIFIED_BY_SQUAD_LEADER' => 'info',
+                        'VERIFIED_FOR_STORAGE' => 'info',
+                        'PENDING_PICKUP' => 'warning',
+                        'IN_STORAGE' => 'primary',
+                        'PENDING_SHIPMENT_CONFIRMATION' => 'warning',
+                        'READY_TO_SHIP' => 'success',
+                        'PICKED_UP' => 'success',
+                        'SHIPPED' => 'success',
+                        'DISPOSED' => 'danger',
+                        default => 'gray',
+                    })
+                    ->searchable()
+                    ->sortable(),
                 TextColumn::make('passenger.full_name')
                     ->label('Nama Penumpang')
                     ->searchable(),
@@ -63,6 +83,22 @@ class ConfiscatedItemsTable
                 ViewAction::make(),
                 EditAction::make(),
                 DeleteAction::make(),
+                            // --- TAMBAHKAN BLOK AKSI BARU DI SINI ---
+            Action::make('downloadDisposalReport')
+                ->label('Cetak PDF')
+                ->icon('heroicon-o-document-arrow-down')
+                ->color('success')
+                ->url(fn (ConfiscatedItem $record) => route('disposal.report.download', $record->disposal))
+                ->openUrlInNewTab()
+                ->visible(function (ConfiscatedItem $record): bool {
+                    // Hanya tampil jika user adalah Dept Head atau Admin
+                    $hasPermission = in_array(auth()->user()->role, ['department_head_avsec', 'admin']);
+
+                    // Dan hanya tampil jika barang sudah punya record disposal (status DISPOSED)
+                    $hasDisposalRecord = $record->disposal()->exists();
+
+                    return $hasPermission && $hasDisposalRecord;
+                }),
                 Action::make('approve')
                     ->label('Setujui')
                     ->icon('heroicon-o-check-circle')
@@ -153,7 +189,15 @@ class ConfiscatedItemsTable
                         return "https://wa.me/{$passengerPhone}?text=" . urlencode($message);
                     })
                     ->openUrlInNewTab()
-                    ->visible(fn (ConfiscatedItem $record): bool => !empty($record->passenger->phone_number)),
+                    ->visible(function (ConfiscatedItem $record): bool {
+                        // Ambil peran user yang sedang login
+                        $userRole = auth()->user()->role;
+
+                        // Tombol hanya akan tampil jika:
+                        // 1. Peran user adalah team_leader_avsec ATAU admin
+                        // 2. DAN Penumpang memiliki nomor telepon
+                        return in_array($userRole, ['team_leader_avsec', 'admin']) && !empty($record->passenger->phone_number);
+                    }),
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
