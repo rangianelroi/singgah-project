@@ -11,7 +11,7 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\Paginator; // <-- Import Paginator
 use Livewire\Attributes\On;
 
 class StorageManagementWidget extends Widget implements HasActions, HasForms
@@ -19,21 +19,27 @@ class StorageManagementWidget extends Widget implements HasActions, HasForms
     use InteractsWithActions, InteractsWithForms;
 
     protected string $view = 'filament.widgets.storage-management-widget';
-    public ?Collection $itemsForStorage;
 
-    #[On('item-processed')] 
+    // Properti $itemsForStorage dan use WithPagination dihapus karena tidak perlu
+
+    #[On('item-processed')]
     public function mount(): void
     {
-        // Ambil item yang status terakhirnya 'VERIFIED_FOR_STORAGE'
-        $this->itemsForStorage = ConfiscatedItem::whereHas('statusLogs', function ($query) {
-            $query->where('status', 'VERIFIED_FOR_STORAGE')
-                ->whereRaw('id = (select max(id) from item_status_logs where item_id = confiscated_items.id)');
-        })->get();
+        // Metode mount tetap ada untuk event listener, tapi tidak perlu mengisi properti
     }
 
     /**
-     * Widget ini hanya bisa dilihat oleh Team Leader dan Admin
+     * Metode untuk mengambil data dengan paginasi.
      */
+    public function getItems(): Paginator
+    {
+        return ConfiscatedItem::whereHas('latestStatusLog', function ($query) {
+                $query->where('status', 'VERIFIED_FOR_STORAGE');
+            })
+            ->latest()
+            ->paginate(6); // Atur jumlah item per halaman
+    }
+
     public static function canView(): bool
     {
         return in_array(auth()->user()->role, ['team_leader_avsec', 'admin']);
@@ -46,19 +52,16 @@ class StorageManagementWidget extends Widget implements HasActions, HasForms
     {
         return Action::make('storeItem')
             ->label('Proses ke Gudang')
-            ->icon('heroicon-o-archive-box-arrow-down')
+            ->icon('heroicon-m-archive-box-arrow-down') // Menggunakan 'm' (mini) untuk konsistensi
             ->color('primary')
+            ->size('sm') // Menambahkan size small
             ->form([
                 TextInput::make('storage_location')
                     ->label('Lokasi Penyimpanan di Gudang')
                     ->placeholder('Contoh: Rak A1, Boks 05')
                     ->required(),
             ])
-            // ===================================================
-            // PERBAIKAN DI SINI: Menggunakan pola yang lebih stabil
-            // ===================================================
             ->action(function (array $data, Action $action) {
-                // Ambil record secara manual dari argumen aksi
                 $record = ConfiscatedItem::find($action->getArguments()['record'] ?? null);
 
                 if (!$record) {
@@ -66,12 +69,8 @@ class StorageManagementWidget extends Widget implements HasActions, HasForms
                     return;
                 }
 
-                // Update lokasi penyimpanan di tabel utama
-                $record->update([
-                    'storage_location' => $data['storage_location'],
-                ]);
+                $record->update(['storage_location' => $data['storage_location']]);
 
-                // Buat log status baru
                 $record->statusLogs()->create([
                     'status' => 'IN_STORAGE',
                     'user_id' => auth()->id(),
@@ -79,8 +78,6 @@ class StorageManagementWidget extends Widget implements HasActions, HasForms
                 ]);
 
                 Notification::make()->title('Barang berhasil disimpan!')->success()->send();
-                
-                // Muat ulang data untuk kedua widget
                 $this->dispatch('item-processed');
             });
     }

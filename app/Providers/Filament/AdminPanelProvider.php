@@ -6,7 +6,7 @@ use Filament\Http\Middleware\Authenticate;
 use Filament\Http\Middleware\AuthenticateSession;
 use Filament\Http\Middleware\DisableBladeIconComponents;
 use Filament\Http\Middleware\DispatchServingFilamentEvent;
-use Filament\Pages\Dashboard;
+use App\Filament\Pages\Dashboard;
 use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
@@ -38,7 +38,8 @@ class AdminPanelProvider extends PanelProvider
             ->login()
             // 1. Atur Skema Warna
             ->colors([
-                'primary' => Color::Amber, // Warna oranye/kuning seperti di desain Anda
+                'primary' => '#1D3353',
+                'gray'    => Color::Slate,
             ])
 
             // 2. Ganti Nama Brand
@@ -56,6 +57,8 @@ class AdminPanelProvider extends PanelProvider
             // 6. Atur Font (opsional, jika ingin mengganti)
             ->font('Poppins')
 
+            ->viteTheme('resources/css/filament/admin/theme.css')
+
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
@@ -63,16 +66,16 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([
-                ItemsByCategoryChart::class,
+                // ItemsByCategoryChart::class,
                 AccountWidget::class,
-                FilamentInfoWidget::class,
-                PendingVerificationWidget::class,
-                OperatorActionsWidget::class,
-                StorageManagementWidget::class,  
-                InStorageItemsWidget::class,
-                DisposalWidget::class,
-                GlobalStatsWidget::class,
-                ShipmentConfirmationWidget::class,
+                // FilamentInfoWidget::class,
+                // PendingVerificationWidget::class,
+                // OperatorActionsWidget::class,
+                // StorageManagementWidget::class,  
+                // InStorageItemsWidget::class,
+                // DisposalWidget::class,
+                // GlobalStatsWidget::class,
+                // ShipmentConfirmationWidget::class,
             ])
             ->middleware([
                 EncryptCookies::class,

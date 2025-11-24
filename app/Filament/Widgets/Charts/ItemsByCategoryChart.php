@@ -11,6 +11,7 @@ class ItemsByCategoryChart extends ChartWidget
     protected ?string $heading = 'Barang Sitaan Berdasarkan Kategori';
 
     protected ?string $maxHeight = '300px';
+    protected int | string | array $columnSpan = 'full';
 
     /**
      * Widget ini hanya bisa dilihat oleh Dept Head dan Admin.

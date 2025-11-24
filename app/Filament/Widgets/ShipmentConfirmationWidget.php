@@ -12,32 +12,30 @@ use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
 use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Contracts\Pagination\Paginator;
 use Livewire\Attributes\On;
+use Filament\Schemas\Components\Grid;
 
 class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
 {
     use InteractsWithForms, InteractsWithActions;
 
     protected string $view = 'filament.widgets.shipment-confirmation-widget';
-    public ?Collection $itemsForConfirmation;
-
-    public $recipient_name, $recipient_phone, $street_address, $subdistrict, $district, $city, $province, $postal_code, $country, $shipping_cost, $tracking_number;
+    protected int | string | array $columnSpan = 'full';
 
     #[On('item-processed')]
     public function mount(): void
     {
-        $this->itemsForConfirmation = ConfiscatedItem::whereHas('latestStatusLog', function ($query) {
-            $query->where('status', 'PENDING_SHIPMENT_CONFIRMATION');
-        })->get();
     }
 
-    public function resetForm(): void
+    public function getItems(): Paginator
     {
-        $this->recipient_name = ''; $this->recipient_phone = ''; $this->street_address = '';
-        $this->subdistrict = ''; $this->district = ''; $this->city = '';
-        $this->province = ''; $this->postal_code = ''; $this->country = 'Indonesia';
-        $this->shipping_cost = 0; $this->tracking_number = '';
+        return ConfiscatedItem::with(['passenger', 'latestStatusLog'])
+            ->whereHas('latestStatusLog', function ($query) {
+                $query->where('status', 'PENDING_SHIPMENT_CONFIRMATION');
+            })
+            ->latest()
+            ->paginate(5);
     }
 
     public static function canView(): bool
@@ -53,11 +51,10 @@ class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
         return "https://wa.me/{$passengerPhone}?text=" . urlencode($message);
     }
 
-    // --- AKSI YANG SEBELUMNYA HILANG, SEKARANG SUDAH LENGKAP ---
-
+    // --- AKSI: CATAT RESPON ---
     public function logResponseAction(): Action
     {
-        return Action::make('logResponse')
+        return Action::make('logResponseAction') // Samakan nama ini dengan di Blade
             ->label('Catat Respon')
             ->icon('heroicon-o-pencil-square')
             ->color('gray')
@@ -68,32 +65,32 @@ class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
                     ->required()
                     ->placeholder('Contoh: Penumpang setuju, alamat akan dikirim nanti.'),
             ])
-            ->action(function (array $data, Action $action) {
-                $record = ConfiscatedItem::find($action->getArguments()['record'] ?? null);
+            ->action(function (array $data, array $arguments) {
+                $record = ConfiscatedItem::find($arguments['record'] ?? null);
                 if (!$record) return;
 
                 $record->communications()->create([
                     'user_id' => auth()->id(),
-                    'channel' => 'whatsapp', // Asumsi respon dari WA
+                    'channel' => 'whatsapp',
                     'message_summary' => $data['message_summary'],
                     'sent_at' => now(),
                 ]);
 
                 Notification::make()->title('Respon berhasil dicatat!')->success()->send();
-                $this->dispatch('item-processed');
             });
     }
 
+    // --- AKSI: BATALKAN ---
     public function cancelShipmentProcessAction(): Action
     {
-        return Action::make('cancelShipmentProcess')
+        return Action::make('cancelShipmentProcessAction')
             ->label('Batalkan')
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->requiresConfirmation()
-            ->modalDescription('Anda yakin ingin membatalkan proses pengiriman untuk barang ini? Status akan dikembalikan ke "IN_STORAGE".')
-            ->action(function (Action $action) {
-                $record = ConfiscatedItem::find($action->getArguments()['record'] ?? null);
+            ->modalDescription('Status akan dikembalikan ke "IN_STORAGE".')
+            ->action(function (array $arguments) {
+                $record = ConfiscatedItem::find($arguments['record'] ?? null);
                 if (!$record) return;
 
                 $record->statusLogs()->create([
@@ -102,46 +99,73 @@ class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
                     'notes' => 'Proses pengiriman dibatalkan oleh petugas.',
                 ]);
                 
-                Notification::make()->title('Proses Dibatalkan')->body('Barang dikembalikan ke status "Di Gudang".')->warning()->send();
-                $this->dispatch('item-processed');
+                Notification::make()->title('Proses Dibatalkan')->body('Status kembali ke Gudang.')->warning()->send();
             });
     }
     
-    // Aksi Konfirmasi & Kirim (tidak berubah)
+    // --- AKSI: KONFIRMASI & KIRIM (FIXED) ---
     public function confirmShipmentAction(): Action
     {
-        return Action::make('confirmShipment')
+        return Action::make('confirmShipmentAction')
             ->label('Konfirmasi & Kirim')
             ->icon('heroicon-o-truck')
             ->color('success')
+            ->modalWidth('2xl')
             ->modalSubmitActionLabel('Simpan Pengiriman')
-            ->before(function (Action $action) { $this->resetForm(); if ($record = ConfiscatedItem::find($action->getArguments()['record'] ?? null)) { $this->recipient_name = $record->passenger->full_name; $this->recipient_phone = $record->passenger->phone_number; } })
+            // Mengisi form awal dengan data penumpang
+            ->fillForm(function (array $arguments) {
+                $record = ConfiscatedItem::find($arguments['record'] ?? null);
+                return [
+                    'recipient_name' => $record?->passenger->full_name,
+                    'recipient_phone' => $record?->passenger->phone_number,
+                    'country' => 'Indonesia',
+                ];
+            })
             ->form([
                 TextInput::make('recipient_name')->required()->label('Nama Penerima'),
                 TextInput::make('recipient_phone')->tel()->required()->label('No. Telepon Penerima'),
                 Textarea::make('street_address')->required()->label('Alamat Jalan')->columnSpanFull(),
-                TextInput::make('subdistrict')->required()->label('Kelurahan/Desa'),
-                TextInput::make('district')->required()->label('Kecamatan'),
-                TextInput::make('city')->required()->label('Kota/Kabupaten'),
-                TextInput::make('province')->required()->label('Provinsi'),
-                TextInput::make('postal_code')->required()->label('Kode Pos'),
-                TextInput::make('country')->required()->label('Negara'),
+                
+                // Grid layout agar lebih rapi
+                    Grid::make(2)->schema([
+                    TextInput::make('subdistrict')->required()->label('Kelurahan/Desa'),
+                    TextInput::make('district')->required()->label('Kecamatan'),
+                    TextInput::make('city')->required()->label('Kota/Kabupaten'),
+                    TextInput::make('province')->required()->label('Provinsi'),
+                    TextInput::make('postal_code')->required()->label('Kode Pos'),
+                    TextInput::make('country')->required()->label('Negara')->default('Indonesia'),
+                ]),
+
                 TextInput::make('shipping_cost')->numeric()->prefix('Rp')->label('Ongkos Kirim')->required(),
                 TextInput::make('tracking_number')->label('Nomor Resi (Opsional)'),
             ])
-            ->action(function (Action $action) {
-                $record = ConfiscatedItem::find($action->getArguments()['record'] ?? null); if (!$record) return;
-                $data = [
-                    'recipient_name' => $this->recipient_name, 'recipient_phone' => $this->recipient_phone,
-                    'street_address' => $this->street_address, 'subdistrict' => $this->subdistrict,
-                    'district' => $this->district, 'city' => $this->city, 'province' => $this->province,
-                    'postal_code' => $this->postal_code, 'country' => $this->country,
-                    'shipping_cost' => $this->shipping_cost, 'tracking_number' => $this->tracking_number,
-                ];
-                $record->shipment()->create($data);
-                $record->statusLogs()->create([ 'status' => 'SHIPPED', 'user_id' => auth()->id(), 'notes' => 'Barang telah dikirim dengan No. Resi: ' . ($data['tracking_number'] ?? 'N/A'), ]);
+            ->action(function (array $data, array $arguments) {
+                $record = ConfiscatedItem::find($arguments['record'] ?? null);
+                if (!$record) return;
+
+                // Simpan ke tabel shipment
+                $record->shipment()->create([
+                    'recipient_name' => $data['recipient_name'],
+                    'recipient_phone' => $data['recipient_phone'],
+                    'street_address' => $data['street_address'],
+                    'subdistrict' => $data['subdistrict'],
+                    'district' => $data['district'],
+                    'city' => $data['city'],
+                    'province' => $data['province'],
+                    'postal_code' => $data['postal_code'],
+                    'country' => $data['country'],
+                    'shipping_cost' => $data['shipping_cost'],
+                    'tracking_number' => $data['tracking_number'],
+                ]);
+
+                // Update status log
+                $record->statusLogs()->create([
+                    'status' => 'SHIPPED',
+                    'user_id' => auth()->id(),
+                    'notes' => 'Barang dikirim. Resi: ' . ($data['tracking_number'] ?? '-'),
+                ]);
+
                 Notification::make()->title('Pengiriman Disimpan!')->success()->send();
-                $this->dispatch('item-processed');
             });
     }
 }

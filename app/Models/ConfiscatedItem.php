@@ -75,20 +75,34 @@ class ConfiscatedItem extends Model
     }
 
     protected function storageStatus(): Attribute
-{
-    return Attribute::make(
-        get: function () {
-            $expiryDate = Carbon::parse($this->confiscation_date)->addMonths(2);
-            $daysRemaining = floor(now()->diffInDays($expiryDate, false));
+    {
+        return Attribute::make(
+            get: function () {
+                $expiryDate = Carbon::parse($this->confiscation_date)->addMonths(2);
+                $daysRemaining = floor(now()->diffInDays($expiryDate, false));
 
-            if ($daysRemaining < 0) {
-                return ['status' => 'Kedaluwarsa', 'color' => 'danger', 'remaining' => 0];
+                if ($daysRemaining < 0) {
+                    return ['status' => 'Kedaluwarsa', 'color' => 'danger', 'remaining' => 0];
+                }
+                if ($daysRemaining <= 30) {
+                    return ['status' => 'Hampir Kedaluwarsa', 'color' => 'warning', 'remaining' => $daysRemaining];
+                }
+                return ['status' => 'Aman', 'color' => 'success', 'remaining' => $daysRemaining];
             }
-            if ($daysRemaining <= 30) {
-                return ['status' => 'Hampir Kedaluwarsa', 'color' => 'warning', 'remaining' => $daysRemaining];
-            }
-            return ['status' => 'Aman', 'color' => 'success', 'remaining' => $daysRemaining];
-        }
-    );
-}
+        );
+    }
+    
+// app/Models/ConfiscatedItem.php
+
+    public static function getCategoryColor(string $category, float $opacity = 1): string
+    {
+        $color = match (strtoupper($category)) {
+            'DANGEROUS_GOODS' => '239, 68, 68', // Merah (RGB)
+            'PROHIBITED_ITEMS' => '249, 115, 22', // Oranye (RGB)
+            'SECURITY_ITEMS' => '59, 130, 246', // Biru (RGB)
+            default => '107, 114, 128', // Abu-abu (RGB)
+        };
+
+        return "rgba({$color}, {$opacity})";
+    }
 }

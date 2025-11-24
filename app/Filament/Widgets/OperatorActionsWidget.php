@@ -7,6 +7,8 @@ class OperatorActionsWidget extends Widget
 {
     protected string $view = 'filament.widgets.operator-actions-widget';
 
+    protected int | string | array $columnSpan = 1;
+
     // Widget ini hanya bisa dilihat oleh Operator AVSEC
     public static function canView(): bool
     {
