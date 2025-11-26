@@ -48,7 +48,7 @@ class StorageManagementWidget extends Widget implements HasActions, HasForms
     /**
      * Aksi untuk menyimpan barang ke gudang
      */
-    public function storeItemAction(): Action
+    public function storeItem(): Action
     {
         return Action::make('storeItem')
             ->label('Proses ke Gudang')

@@ -30,7 +30,7 @@ class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
 
     public function getItems(): Paginator
     {
-        return ConfiscatedItem::with(['passenger', 'latestStatusLog'])
+        return ConfiscatedItem::with(['passenger', 'latestStatusLog', 'communications'])
             ->whereHas('latestStatusLog', function ($query) {
                 $query->where('status', 'PENDING_SHIPMENT_CONFIRMATION');
             })

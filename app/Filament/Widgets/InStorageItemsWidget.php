@@ -25,11 +25,17 @@ class InStorageItemsWidget extends Widget implements HasForms, HasActions
     #[On('item-processed')]
     public function mount(): void
     {
-        // PERBAIKAN: Tambahkan with(['latestStatusLog']) agar data log bisa diakses di Blade
-        $this->inStorageItems = ConfiscatedItem::with(['passenger', 'communications', 'latestStatusLog']) 
+        $this->inStorageItems = ConfiscatedItem::with(['passenger', 'communications', 'latestStatusLog'])
+            // 1. Ambil barang yang status TERAKHIR-nya 'IN_STORAGE'
             ->whereHas('latestStatusLog', function ($query) {
                 $query->where('status', 'IN_STORAGE');
-            })->get();
+            })
+            // 2. FILTER BARU: Sembunyikan barang yang PERNAH masuk status 'PENDING_SHIPMENT_CONFIRMATION'
+            // Artinya: Jika barang ini pernah diproses kirim lalu dibatalkan, jangan tampilkan lagi di sini.
+            ->whereDoesntHave('statusLogs', function ($query) {
+                $query->where('status', 'PENDING_SHIPMENT_CONFIRMATION');
+            })
+            ->get();
     }
 
     public static function canView(): bool

@@ -111,8 +111,8 @@ class PendingVerificationWidget extends Widget implements HasActions, HasForms
 
                 } else {
                     // OPSI B: Masuk Gudang
-                    $status = 'IN_STORAGE'; // Pastikan huruf besar sesuai ENUM di database
-                    $notes = 'Barang diverifikasi untuk disimpan di gudang.';
+                    $status = 'VERIFIED_FOR_STORAGE'; // Pastikan huruf besar sesuai ENUM di database
+                    $notes = 'Barang diverifikasi Squad Leader AVSEC untuk masuk ke gudang.';
                 }
 
                 // 3. Create Log Status (PERBAIKAN UTAMA DI SINI)

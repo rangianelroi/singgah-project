@@ -31,6 +31,7 @@ class ConfiscatedItemsTable
                     ->label('Gambar Barang')
                     ->disk('local'),
                 TextColumn::make('category')
+                    ->label('Kategori')
                     ->badge(),
                 TextColumn::make('item_name')
                         ->searchable()
@@ -63,7 +64,7 @@ class ConfiscatedItemsTable
                     ->label('Nama Penumpang')
                     ->searchable(),
                 TextColumn::make('flight.airline.code')
-                    ->label('Kode Airline')
+                    ->label('Kode Maskapai')
                     ->badge(), 
                 TextColumn::make('flight.flight_number')
                     ->label('Nomor Penerbangan'),

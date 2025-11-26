@@ -14,6 +14,9 @@ use App\Filament\Widgets\StorageManagementWidget;
 use App\Filament\Widgets\DisposalWidget;
 use App\Filament\Widgets\ShipmentConfirmationWidget;
 use App\Filament\Widgets\PendingPickupWidget;
+use App\Filament\Widgets\Charts\ConfiscatedItemsTrendChart;
+use App\Filament\Widgets\Charts\FinalDispositionChart;
+use App\Filament\Widgets\Charts\AirlinesChart;
 
 
 class Dashboard extends BaseDashboard
@@ -41,12 +44,15 @@ class Dashboard extends BaseDashboard
             return [
                 GlobalStatsWidget::class,
                 PendingVerificationWidget::class,
+                PendingPickupWidget::class,
+                ConfiscatedItemsTrendChart::class,
                 ItemsByCategoryChart::class,
-                InStorageItemsWidget::class,
+                AirlinesChart::class,
+                FinalDispositionChart::class,
                 StorageManagementWidget::class,
+                InStorageItemsWidget::class,
                 ShipmentConfirmationWidget::class,
                 DisposalWidget::class,
-                PendingPickupWidget::class,
             ];
         }
 
