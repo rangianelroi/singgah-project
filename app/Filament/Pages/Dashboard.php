@@ -23,13 +23,24 @@ class Dashboard extends BaseDashboard
 {
     public function getHeader(): ?\Illuminate\Contracts\View\View
     {
-        // Jika user adalah operator, tampilkan header kustom kita
-        if (auth()->user()->role === 'operator_avsec') {
-            return view('filament.pages.partials.operator-dashboard-header');
-        }
+        $user = auth()->user();
 
-        // Untuk peran lain, tidak ada header (atau bisa dibuatkan juga)
-        return null;
+        return match ($user->role) {
+            // Header untuk Operator (yang sudah Anda buat sebelumnya)
+            'operator_avsec' => view('filament.pages.partials.operator-dashboard-header'),
+
+            // Header BARU untuk Squad Leader
+            'squad_leader_avsec' => view('filament.pages.partials.squad-leader-dashboard-header'),
+
+            // Header BARU untuk Team Investigasi Leader
+            'team_leader_avsec' => view('filament.pages.partials.team-leader-investigasi-dashboard-header'),
+
+            // Header BARU untuk Department Head AVSEC
+            'department_head_avsec' => view('filament.pages.partials.dept-head-dashboard-header'),
+            
+            // Default (Admin/Manager) tidak pakai header khusus atau bisa dibuatkan nanti
+            default => null,
+        };
     }
 
      public function getWidgets(): array
@@ -42,7 +53,7 @@ class Dashboard extends BaseDashboard
 
             // Untuk semua peran lainnya (Admin, Dept Head, dll), tampilkan widget ini.
             return [
-                GlobalStatsWidget::class,
+                // GlobalStatsWidget::class,
                 PendingVerificationWidget::class,
                 PendingPickupWidget::class,
                 ConfiscatedItemsTrendChart::class,
