@@ -44,7 +44,7 @@
                                     {{ $item->item_name }}
                                 </h3>
                                 <p class="text-xs text-gray-500 mt-1">
-                                    Milik: <span class="font-medium">{{ $item->passenger->name ?? '-' }}</span>
+                                    Milik: <span class="font-medium">{{ $item->passenger->full_name ?? '-' }}</span>
                                 </p>
                             </div>
 

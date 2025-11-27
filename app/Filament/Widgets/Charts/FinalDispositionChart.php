@@ -16,6 +16,12 @@ class FinalDispositionChart extends ChartWidget
     // Note: $sort tetap static karena digunakan oleh sistem layout dashboard sebelum widget di-load
     protected static ?int $sort = 4;
 
+    public static function canView(): bool
+    {
+        // Pastikan user role sesuai dengan sistem Anda
+        return in_array(auth()->user()->role, ['department_head_avsec', 'admin']);
+    }
+
     protected function getData(): array
     {
         // Ambil status terakhir dari log

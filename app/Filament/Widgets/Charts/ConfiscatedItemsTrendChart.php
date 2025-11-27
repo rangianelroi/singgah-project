@@ -15,6 +15,12 @@ class ConfiscatedItemsTrendChart extends ChartWidget
     // Urutkan chart ini agar muncul di paling atas dashboard
     protected static ?int $sort = 1; 
 
+    public static function canView(): bool
+    {
+        // Pastikan user role sesuai dengan sistem Anda
+        return in_array(auth()->user()->role, ['department_head_avsec', 'admin']);
+    }
+
     protected function getData(): array
     {
         // Menggunakan package Flowframe Trend (bawaan Filament)

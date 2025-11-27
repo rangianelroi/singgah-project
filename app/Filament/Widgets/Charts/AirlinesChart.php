@@ -11,6 +11,12 @@ class AirlinesChart extends ChartWidget
     protected ?string $heading = 'Maskapai dengan Sitaan';
     protected ?string $maxHeight = '300px';
 
+    public static function canView(): bool
+    {
+        // Pastikan user role sesuai dengan sistem Anda
+        return in_array(auth()->user()->role, ['department_head_avsec']);
+    }
+
     protected function getData(): array
     {
         // Join dari Item -> Flight -> Airline

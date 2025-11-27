@@ -30,6 +30,12 @@ class DisposalWidget extends Widget implements HasForms, HasActions
     // [BARU] Array untuk menyimpan ID item yang dicentang
     public array $selectedItems = [];
 
+    public static function canView(): bool
+    {
+        // Pastikan user role sesuai dengan sistem Anda
+        return in_array(auth()->user()->role, ['department_head_avsec']);
+    }
+
     #[On('item-processed')]
     public function mount(): void
     {

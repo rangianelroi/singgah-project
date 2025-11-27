@@ -17,6 +17,7 @@ use Filament\Forms\Components\FileUpload;
 use Filament\Resources\RelationManagers\RelationManager;
 use Filament\Schemas\Schema;
 use Filament\Tables\Columns\TextColumn;
+use Filament\Tables\Columns\ImageColumn;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Model;
 
@@ -69,6 +70,15 @@ class PickupsRelationManager extends RelationManager
                 TextColumn::make('relationship_to_passenger')->label('Hubungan dengan Penumpang'),
                 TextColumn::make('pickup_timestamp')->dateTime('d M Y H:i')->label('Waktu Pengambilan'),
                 TextColumn::make('verifiedBy.name')->label('Diverifikasi Oleh'),
+                ImageColumn::make('photo_of_recipient_path')
+                    ->label('Foto Penerima')
+                    ->disk('local') // Pastikan disk ini bisa diakses browser (lihat catatan di bawah)
+                    ->rounded(),
+                    
+                ImageColumn::make('photo_of_identity_path')
+                    ->label('Foto Identitas')
+                    ->disk('local')
+                    ->rounded(),
             ])
             ->filters([
                 //
