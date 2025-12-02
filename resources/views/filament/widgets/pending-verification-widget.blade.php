@@ -26,11 +26,56 @@
         </x-slot>
 
         @if($this->getItems()->isNotEmpty())
+            {{-- SEARCH BAR --}}
+            <div class="mb-6">
+                <input 
+                    type="text" 
+                    wire:model.live="search"
+                    placeholder="Cari berdasarkan nama barang atau nama penumpang..."
+                    class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                />
+            </div>
+
+            {{-- SELECT ALL & BULK ACTION --}}
+            <div class="mb-6 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <input 
+                        type="checkbox" 
+                        wire:click="toggleSelectAll"
+                        @checked(count($selectedItems) === count($this->getItems()) && count($this->getItems()) > 0)
+                        class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer"
+                    />
+                    <span class="text-sm font-medium text-gray-700 dark:text-gray-300 cursor-pointer" wire:click="toggleSelectAll">
+                        Pilih Semua ({{ count($selectedItems) }}/{{ count($this->getItems()) }})
+                    </span>
+                </div>
+
+                @if(count($selectedItems) > 0)
+                    <button 
+                        wire:click="submitToStorage"
+                        class="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-medium text-sm transition-all duration-200 shadow-sm hover:shadow-md"
+                    >
+                        <x-heroicon-m-archive-box class="w-5 h-5" />
+                        Masuk Gudang ({{ count($selectedItems) }})
+                    </button>
+                @endif
+            </div>
+
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 @foreach($this->getItems() as $item)
-                    <div class="group bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col transform transition-all duration-200 hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600">
+                    <div class="group relative bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden flex flex-col transform transition-all duration-200 hover:shadow-md hover:border-primary-300 dark:hover:border-primary-600">
                         
-                        <div class="p-6 flex-grow">
+                        {{-- CHECKBOX --}}
+                        <div class="absolute top-4 left-4 z-10">
+                            <input 
+                                type="checkbox" 
+                                value="{{ $item->id }}" 
+                                wire:model.live="selectedItems"
+                                class="rounded border-gray-300 text-primary-600 focus:ring-primary-500 cursor-pointer w-5 h-5"
+                            />
+                        </div>
+
+                        <div class="p-6 flex-grow pt-12">
                             {{-- Header dengan Category dan Time --}}
                             <div class="flex items-start justify-between gap-3 mb-5">
                                 <span class="inline-flex items-center rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm"
@@ -66,7 +111,7 @@
                                     <div class="min-w-0 flex-1">
                                         <p class="text-xs font-medium text-gray-500 dark:text-gray-400 mb-0.5">Penumpang</p>
                                         <p class="text-sm font-semibold text-gray-900 dark:text-white truncate">
-                                            {{ $item->passenger->name ?? 'N/A' }}
+                                            {{ $item->passenger->full_name ?? 'N/A' }}
                                         </p>
                                     </div>
                                 </div>

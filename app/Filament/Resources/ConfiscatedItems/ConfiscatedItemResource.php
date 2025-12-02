@@ -31,7 +31,7 @@ class ConfiscatedItemResource extends Resource
 
     protected static ?string $pluralModelLabel = 'Barang Sitaan';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::ArchiveBox;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedArchiveBox;
 
     public static function form(Schema $schema): Schema
     {

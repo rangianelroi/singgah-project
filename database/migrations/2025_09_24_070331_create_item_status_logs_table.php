@@ -1,67 +1,45 @@
 <?php
 
-namespace App\Filament\Widgets\Charts;
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
-use App\Models\ConfiscatedItem;
-use Filament\Widgets\ChartWidget;
-use Illuminate\Support\Facades\DB;
-
-class FinalDispositionChart extends ChartWidget
+return new class extends Migration
 {
-    // Heading widget
-    protected ?string $heading = 'Persentase Akhir Nasib Barang';
-    
-    // Tinggi maksimal chart
-    protected ?string $maxHeight = '250px';
-    
-    // Urutan widget di dashboard
-    protected static ?int $sort = 4;
-
-    protected function getData(): array
+    /**
+     * Run the migrations.
+     */
+    public function up(): void
     {
-        // Query data berdasarkan status terakhir
-        $data = ConfiscatedItem::query()
-            ->join('item_status_logs', function($join) {
-                // Join ke tabel log untuk ambil status terakhir per item
-                $join->on('confiscated_items.id', '=', 'item_status_logs.item_id')
-                     ->whereRaw('item_status_logs.id = (select max(id) from item_status_logs where item_id = confiscated_items.id)');
-            })
-            // FILTER BARU: Hanya ambil 3 status yang diminta
-            ->whereIn('item_status_logs.status', ['SHIPPED', 'PICKED_UP', 'DISPOSED'])
-            ->select('item_status_logs.status', DB::raw('count(*) as total'))
-            ->groupBy('item_status_logs.status')
-            ->pluck('total', 'status')
-            ->all();
+        Schema::create('item_status_logs', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('item_id')->constrained('confiscated_items')->onDelete('cascade');
+            $table->foreignId('user_id')->constrained('users')->onDelete('restrict');
+            $table->enum('status', [
+                'RECORDED',
+                'VERIFIED_BY_SQUAD_LEADER',
+                'PENDING_PICKUP',
+                'VERIFIED_FOR_STORAGE',
+                'IN_STORAGE',
+                'PENDING_SHIPMENT_CONFIRMATION',
+                'READY_TO_SHIP',
+                'SHIPPED',
+                'PICKED_UP',
+                'DISPOSED'
+            ]);
+            $table->text('notes')->nullable();
+            $table->timestamps();
 
-        // Mapping label status ke Bahasa Indonesia yang lebih user-friendly
-        $labels = array_map(function($status) {
-            return match($status) {
-                'SHIPPED'    => 'Dikirim Ekspedisi',
-                'PICKED_UP'  => 'Diambil Penumpang',
-                'DISPOSED'   => 'Dimusnahkan',
-                default      => $status
-            };
-        }, array_keys($data));
-
-        return [
-            'datasets' => [
-                [
-                    'label' => 'Total Barang',
-                    'data' => array_values($data),
-                    'backgroundColor' => [
-                        '#3B82F6', // SHIPPED - Biru
-                        '#10B981', // PICKED_UP - Hijau
-                        '#EF4444', // DISPOSED - Merah
-                    ],
-                    'hoverOffset' => 4,
-                ],
-            ],
-            'labels' => $labels,
-        ];
+            $table->index(['item_id', 'created_at']);
+            $table->index(['status']);
+        });
     }
 
-    protected function getType(): string
+    /**
+     * Reverse the migrations.
+     */
+    public function down(): void
     {
-        return 'doughnut';
+        Schema::dropIfExists('item_status_logs');
     }
-}
+};

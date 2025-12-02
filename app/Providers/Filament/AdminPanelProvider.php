@@ -26,6 +26,8 @@ use App\Filament\Widgets\DisposalWidget;
 use App\Filament\Widgets\ShipmentConfirmationWidget;
 use App\Filament\Widgets\Stats\GlobalStatsWidget;
 use App\Filament\Widgets\Charts\ItemsByCategoryChart;
+use Swis\Filament\Backgrounds\FilamentBackgroundsPlugin;
+use Swis\Filament\Backgrounds\ImageProviders\MyImages;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -43,13 +45,21 @@ class AdminPanelProvider extends PanelProvider
             ])
 
             // 2. Ganti Nama Brand
-            ->brandName('SINGGAH')
+            ->brandName('SISTEM INFORMASI BARANG TERTAHAN')
 
             // 3. Atur Logo (jika Anda punya file logo)
-            // ->brandLogo(asset('images/logo.svg')) 
+            //->brandLogo(asset('assets/images/logo-injourney.png')) 
             
             // 4. Atur Favicon (ikon di tab browser)
-            // ->favicon(asset('images/favicon.png'))
+            ->favicon(asset('assets/logo/box.svg')) 
+
+            ->plugins([
+                FilamentBackgroundsPlugin::make()
+                    ->imageProvider(
+                        MyImages::make()
+                            ->directory('assets/login-bg')
+                    ),
+            ])
 
             // 5. Jadikan Mode Gelap sebagai Default
             ->darkMode(true)
@@ -62,7 +72,7 @@ class AdminPanelProvider extends PanelProvider
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\Filament\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\Filament\Pages')
             ->pages([
-                Dashboard::class,
+                //Dashboard::class,
             ])
             ->discoverWidgets(in: app_path('Filament/Widgets'), for: 'App\Filament\Widgets')
             ->widgets([

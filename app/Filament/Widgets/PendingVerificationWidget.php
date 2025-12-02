@@ -27,15 +27,88 @@ class PendingVerificationWidget extends Widget implements HasActions, HasForms
     protected string $view = 'filament.widgets.pending-verification-widget';
     protected int | string | array $columnSpan = 'full';
 
+    public $search = '';
+    public $selectedItems = [];
+
     protected function getItems()
     {
         // Ambil barang yang status terakhirnya 'RECORDED'
-        return ConfiscatedItem::with('passenger')
+        $query = ConfiscatedItem::with('passenger', 'flight')
             ->whereHas('latestStatusLog', function ($query) {
                 $query->where('status', 'RECORDED');
-            })
-            ->latest()
-            ->paginate(5);
+            });
+
+        // Apply search filter jika ada
+        if ($this->search) {
+            $query->where(function ($q) {
+                $q->where('item_name', 'like', '%' . $this->search . '%')
+                  ->orWhereHas('passenger', function ($subQ) {
+                      $subQ->where('full_name', 'like', '%' . $this->search . '%');
+                  });
+            });
+        }
+
+        return $query->latest()->paginate(5);
+    }
+
+    public function updatedSearch()
+    {
+        $this->resetPage();
+    }
+
+    public function toggleSelectAll()
+    {
+        if (count($this->selectedItems) === count($this->getItems())) {
+            $this->selectedItems = [];
+        } else {
+            $this->selectedItems = $this->getItems()->pluck('id')->toArray();
+        }
+    }
+
+    // --- BULK ACTION: Submit ke Gudang ---
+    public function submitToStorage()
+    {
+        if (empty($this->selectedItems)) {
+            Notification::make()
+                ->title('Pilih Barang Terlebih Dahulu')
+                ->body('Silakan pilih minimal satu barang untuk dimasukkan ke gudang.')
+                ->warning()
+                ->send();
+            return;
+        }
+
+        try {
+            // Ambil semua barang yang dipilih
+            $items = ConfiscatedItem::whereIn('id', $this->selectedItems)->get();
+
+            foreach ($items as $item) {
+                // Buat status log untuk setiap item
+                ItemStatusLog::create([
+                    'item_id' => $item->id,
+                    'user_id' => Auth::id(),
+                    'status' => 'IN_STORAGE',
+                    'notes' => 'Barang dimasukkan ke gudang (bulk action squad leader).',
+                ]);
+            }
+
+            // Clear selection dan reset search
+            $this->selectedItems = [];
+            $this->search = '';
+            $this->resetPage();
+
+            Notification::make()
+                ->title('Berhasil')
+                ->body(count($items) . ' barang telah dimasukkan ke gudang.')
+                ->success()
+                ->send();
+
+        } catch (\Exception $e) {
+            Notification::make()
+                ->title('Gagal')
+                ->body('Terjadi kesalahan: ' . $e->getMessage())
+                ->danger()
+                ->send();
+        }
     }
 
     // --- ACTION (LOGIKA WIZARD) ---
