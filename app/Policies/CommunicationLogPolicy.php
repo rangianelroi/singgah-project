@@ -9,34 +9,6 @@ use Illuminate\Auth\Access\Response;
 class CommunicationLogPolicy
 {
     /**
-     * Determine whether the user can view any communication logs.
-     */
-    public function viewAny(User $user): bool
-    {
-        return in_array($user->role, [
-            'operator_avsec',
-            'squad_leader_avsec',
-            'team_leader_avsec',
-            'department_head_avsec',
-            'admin'
-        ]);
-    }
-
-    /**
-     * Determine whether the user can view a specific communication log.
-     */
-    public function view(User $user, CommunicationLog $communicationLog): bool
-    {
-        return in_array($user->role, [
-            'operator_avsec',
-            'squad_leader_avsec',
-            'team_leader_avsec',
-            'department_head_avsec',
-            'admin'
-        ]);
-    }
-
-    /**
      * Determine whether the user can create models.
      */
     public function create(User $user): bool

@@ -59,11 +59,11 @@ class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
         // Tahap 2: Payment Confirmation - menunggu form harga diisi dulu
         if ($item->pending_action === 'payment_confirmation') {
             $shipment = $item->shipment;
-            if (!$shipment?->shipping_cost) {
+            if (!$shipment?->shipping_price) {
                 // Belum ada data harga, disable link
                 return '#';
             }
-            $totalPrice = ($shipment?->shipping_cost ?? 0) + ($shipment?->service_fee ?? 0);
+            $totalPrice = ($shipment?->shipping_price ?? 0) + ($shipment?->service_price ?? 0);
             $message = "Silakan lakukan transfer pembayaran sebesar Rp " . number_format($totalPrice, 0, ',', '.') 
                 . " untuk pengiriman barang Anda '{$item->item_name}' ke " . $shipment?->address?->city;
             return "https://wa.me/{$passengerPhone}?text=" . urlencode($message);
@@ -121,9 +121,7 @@ class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
                     ->visible(fn ($get) => $get('shipment_response') === 'yes')
                     ->columnSpanFull(),
 
-                Grid::make(4)->schema([
-                    TextInput::make('subdistrict')->label('Kelurahan')->nullable(),
-                    TextInput::make('district')->label('Kecamatan')->nullable(),
+                Grid::make(3)->schema([
                     TextInput::make('city')->label('Kota')->required(),
                     TextInput::make('province')->label('Provinsi')->required(),
                     TextInput::make('postal_code')->label('Kode Pos')->required(),
@@ -149,20 +147,24 @@ class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
                         'recipient_name' => $data['recipient_name'],
                         'recipient_phone' => $data['recipient_phone'],
                         'street_address' => $data['street_address'],
-                        'subdistrict' => $data['subdistrict'] ?? null,
-                        'district' => $data['district'] ?? null,
                         'city' => $data['city'],
                         'province' => $data['province'],
                         'postal_code' => $data['postal_code'],
                         'country' => $data['country'],
                     ]);
 
-                    // Create or update shipment with ONLY address_id reference
-                    // IMPORTANT: Address details are stored in Address model, not duplicated here
+                    // Create or update shipment
                     $shipment = $record->shipment()->updateOrCreate(
                         ['item_id' => $record->id],
                         [
                             'address_id' => $address->id,
+                            'recipient_name' => $data['recipient_name'],
+                            'recipient_phone' => $data['recipient_phone'],
+                            'street_address' => $data['street_address'],
+                            'city' => $data['city'],
+                            'province' => $data['province'],
+                            'postal_code' => $data['postal_code'],
+                            'country' => $data['country'],
                             'payment_status' => 'pending',
                         ]
                     );
@@ -225,12 +227,12 @@ class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
             ->modalWidth('md')
             ->form([
                 Grid::make(2)->schema([
-                    TextInput::make('shipping_cost')
+                    TextInput::make('shipping_price')
                         ->label('Harga Pengiriman (Rp)')
                         ->numeric()
                         ->required()
                         ->inputMode('decimal'),
-                    TextInput::make('service_fee')
+                    TextInput::make('service_price')
                         ->label('Harga Layanan (Rp)')
                         ->numeric()
                         ->required()
@@ -247,8 +249,8 @@ class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
                 $shipment = $record->shipment;
                 if ($shipment) {
                     $shipment->update([
-                        'shipping_cost' => $data['shipping_cost'],
-                        'service_fee' => $data['service_fee'],
+                        'shipping_price' => $data['shipping_price'],
+                        'service_price' => $data['service_price'],
                     ]);
                 }
 

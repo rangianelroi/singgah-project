@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
-use App\Enums\PendingActionEnum;
 use Carbon\Carbon;
 
 
@@ -29,7 +28,7 @@ class ConfiscatedItem extends Model
 
     protected $casts = [
         'confiscation_date' => 'datetime',
-        'pending_action' => PendingActionEnum::class,
+        'pending_action' => 'string',
     ];
 
     public function passenger()
@@ -64,7 +63,7 @@ class ConfiscatedItem extends Model
 
     public function pickups()
     {
-        return $this->hasMany(PickupRecord::class, 'item_id');
+        return $this->hasOne(PickupRecord::class, 'item_id');
     }
 
     public function shipment()

@@ -143,7 +143,7 @@
 
                                     {{-- Tombol WA (clickable hanya jika sudah ada harga) --}}
                                     @php
-                                        $hasPrice = $item->shipment?->shipping_cost && $item->shipment?->service_fee;
+                                        $hasPrice = $item->shipment?->shipping_price && $item->shipment?->service_price;
                                     @endphp
                                     <x-filament::button
                                         color="success"

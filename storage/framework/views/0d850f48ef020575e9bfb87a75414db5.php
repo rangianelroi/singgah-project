@@ -1,0 +1,3 @@
+<svg class="w-8 h-8 text-cyan-600 dark:text-cyan-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true" data-slot="icon">
+  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"/>
+</svg><?php /**PATH C:\Users\ElroiJohanes\Documents\singgah\singgah-project\storage\framework\views/36bae4dd803f5f623f30d3c40294179d.blade.php ENDPATH**/ ?>

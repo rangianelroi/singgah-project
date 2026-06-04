@@ -11,8 +11,6 @@ class Address extends Model
         'recipient_name',
         'recipient_phone',
         'street_address',
-        'subdistrict',
-        'district',
         'city',
         'province',
         'postal_code',

@@ -17,14 +17,6 @@ class ConfiscatedItemPolicy
     }
 
     /**
-     * Siapa yang bisa melihat detail barang individual?
-     */
-    public function view(User $user, ConfiscatedItem $confiscatedItem): bool
-    {
-        return true; // Semua peran yang login bisa melihat detail
-    }
-
-    /**
      * Siapa yang bisa membuat barang baru?
      */
     public function create(User $user): bool

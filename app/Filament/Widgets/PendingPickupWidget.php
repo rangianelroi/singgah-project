@@ -8,6 +8,9 @@ use App\Models\ItemStatusLog;
 use Filament\Actions\Action;
 use Filament\Forms\Components\FileUpload;
 use Filament\Forms\Components\Textarea;
+use Filament\Forms\Components\Section;
+use Filament\Forms\Components\Grid;
+use Filament\Forms\Components\Placeholder;
 use Filament\Widgets\Widget;
 use Filament\Actions\Concerns\InteractsWithActions;
 use Filament\Actions\Contracts\HasActions;
@@ -124,6 +127,32 @@ class PendingPickupWidget extends Widget implements HasActions, HasForms
                     ->body('Status barang diperbarui menjadi Picked Up.')
                     ->success()
                     ->send();
+            });
+    }
+
+    /**
+     * Action: View Detail Kerabat (Penjemput)
+     * Menampilkan modal dengan detail kerabat + foto penerima dan identitas
+     */
+    public function viewRecipientDetailsAction(): Action
+    {
+        return Action::make('viewRecipientDetailsAction')
+            ->label('Lihat Detail & Foto Kerabat')
+            ->icon('heroicon-o-information-circle')
+            ->color('info')
+            ->modalHeading('Detail Kerabat Penerima')
+            ->modalWidth('lg')
+            ->form([])
+            ->action(function ($arguments) {
+                $pickupId = $arguments['pickup'] ?? null;
+                if (!$pickupId) {
+                    Notification::make()
+                        ->title('Error')
+                        ->body('Data penjemput tidak ditemukan')
+                        ->danger()
+                        ->send();
+                    return;
+                }
             });
     }
 
