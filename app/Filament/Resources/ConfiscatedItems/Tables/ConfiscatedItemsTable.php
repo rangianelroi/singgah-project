@@ -131,13 +131,13 @@ class ConfiscatedItemsTable
                                     FileUpload::make('photo_of_recipient_path')
                                         ->label('Foto Pengambil (Selfie dengan Identitas)')
                                         ->image()
-                                        ->disk('local')
+                                        ->disk('public')
                                         ->directory('pickup-photos')
                                         ->required(),
                                     FileUpload::make('photo_of_identity_path')
-                                        ->label('Foto Identitas (KTP/Paspor)')
+                                        ->label('Foto Identitas')
                                         ->image()
-                                        ->disk('local')
+                                        ->disk('public')
                                         ->directory('identity-photos')
                                         ->required(),
                                 ])

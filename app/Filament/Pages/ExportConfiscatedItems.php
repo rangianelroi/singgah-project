@@ -27,7 +27,7 @@ class ExportConfiscatedItems extends Page
 
     public static function canAccess(): bool
     {
-        return in_array(auth()->user()->role, ['department_head_avsec', 'admin', 'squad_leader_avsec']);
+        return in_array(auth()->user()->role, ['department_head_avsec']);
     }
 
     public function mount(): void

@@ -16,9 +16,16 @@ use Filament\Tables\Table;
 
 class AirlineResource extends Resource
 {
-    protected static ?string $model = Airline::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $modelLabel = 'Maskapai';
+
+    protected static ?string $navigationLabel = 'Maskapai';
+
+    protected static ?string $pluralModelLabel = 'Maskapai';
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedPaperAirplane;
+
+    protected static ?string $model = Airline::class;
 
     public static function form(Schema $schema): Schema
     {

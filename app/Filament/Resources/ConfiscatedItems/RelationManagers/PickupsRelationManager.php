@@ -49,14 +49,14 @@ class PickupsRelationManager extends RelationManager
                 FileUpload::make('photo_of_recipient_path')
                     ->label('Foto Penerima')
                     ->image()
-                    ->disk('local')
-                    ->directory('pickup_photos')
+                    ->disk('public')
+                    ->directory('pickup-photos')
                     ->required(),
                 FileUpload::make('photo_of_identity_path')
                     ->label('Foto Identitas')
                     ->image()
-                    ->disk('local')
-                    ->directory('identity_photos')
+                    ->disk('public')
+                    ->directory('identity-photos')
                     ->required(),
             ]);
     }
@@ -72,12 +72,12 @@ class PickupsRelationManager extends RelationManager
                 TextColumn::make('verifiedBy.name')->label('Diverifikasi Oleh'),
                 ImageColumn::make('photo_of_recipient_path')
                     ->label('Foto Penerima')
-                    ->disk('local') // Pastikan disk ini bisa diakses browser (lihat catatan di bawah)
+                    ->disk('public')
                     ->rounded(),
                     
                 ImageColumn::make('photo_of_identity_path')
                     ->label('Foto Identitas')
-                    ->disk('local')
+                    ->disk('public')
                     ->rounded(),
             ])
             ->filters([

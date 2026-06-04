@@ -16,9 +16,15 @@ use Filament\Tables\Table;
 
 class PassengerResource extends Resource
 {
-    protected static ?string $model = Passenger::class;
+        protected static ?string $modelLabel = 'Penumpang';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $navigationLabel = 'Penumpang';
+
+    protected static ?string $pluralModelLabel = 'Penumpang';
+    
+    protected static ?string $model = Passenger::class;
+    
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedFaceSmile;
 
     public static function form(Schema $schema): Schema
     {

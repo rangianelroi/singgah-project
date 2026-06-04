@@ -4,19 +4,19 @@ namespace App\Providers;
 // Import Model
 use App\Models\ConfiscatedItem;
 use App\Models\User;
-use App\Models\Airline;       // <-- Tambahkan ini
-use App\Models\Airport;       // <-- Tambahkan ini
-use App\Models\Passenger;     // <-- Tambahkan ini
-use App\Models\Flight;        // <-- Tambahkan ini
+use App\Models\Airline;     
+use App\Models\Airport;     
+use App\Models\Passenger;   
+use App\Models\Flight;      
 use App\Models\CommunicationLog;
 
 // Import Policy
 use App\Policies\ConfiscatedItemPolicy;
 use App\Policies\UserPolicy;
-use App\Policies\AirlinePolicy;      // <-- Tambahkan ini (Penyebab Error Utama)
-use App\Policies\AirportPolicy;      // <-- Tambahkan ini
-use App\Policies\PassengerPolicy;    // <-- Tambahkan ini
-use App\Policies\FlightPolicy;       // <-- Tambahkan ini
+use App\Policies\AirlinePolicy;      
+use App\Policies\AirportPolicy;    
+use App\Policies\PassengerPolicy;  
+use App\Policies\FlightPolicy;     
 use App\Policies\CommunicationLogPolicy;
 
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;

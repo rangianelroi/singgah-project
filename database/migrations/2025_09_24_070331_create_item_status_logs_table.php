@@ -21,8 +21,6 @@ return new class extends Migration
                 'PENDING_PICKUP',
                 'VERIFIED_FOR_STORAGE',
                 'IN_STORAGE',
-                'PENDING_SHIPMENT_CONFIRMATION',
-                'READY_TO_SHIP',
                 'SHIPPED',
                 'PICKED_UP',
                 'DISPOSED'

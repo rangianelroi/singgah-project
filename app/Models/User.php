@@ -47,4 +47,12 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    /**
+     * Get the confiscated items recorded by this user
+     */
+    public function confiscatedItems()
+    {
+        return $this->hasMany(ConfiscatedItem::class, 'recorded_by_user_id');
+    }
 }

@@ -10,10 +10,11 @@ use App\Filament\Widgets\PendingVerificationWidget;
 // use App\Filament\Widgets\Stats\OperatorStatsWidget;
 use App\Filament\Widgets\LatestItemsWidget;
 use App\Filament\Widgets\InStorageItemsWidget;
-use App\Filament\Widgets\StorageManagementWidget;
-use App\Filament\Widgets\DisposalWidget;
-use App\Filament\Widgets\ShipmentConfirmationWidget;
 use App\Filament\Widgets\PendingPickupWidget;
+use App\Filament\Widgets\StorageManagementWidget;
+use App\Filament\Widgets\ShipmentConfirmationWidget;
+use App\Filament\Widgets\ShippedItemsWidget;
+use App\Filament\Widgets\DisposalWidget;
 use App\Filament\Widgets\Charts\ConfiscatedItemsTrendChart;
 use App\Filament\Widgets\Charts\FinalDispositionChart;
 use App\Filament\Widgets\Charts\AirlinesChart;
@@ -63,6 +64,7 @@ class Dashboard extends BaseDashboard
                 StorageManagementWidget::class,
                 InStorageItemsWidget::class,
                 ShipmentConfirmationWidget::class,
+                ShippedItemsWidget::class,
                 DisposalWidget::class,
             ];
         }

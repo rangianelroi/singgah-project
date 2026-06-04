@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Casts\Attribute;
+use App\Enums\PendingActionEnum;
 use Carbon\Carbon;
 
 
@@ -22,11 +23,13 @@ class ConfiscatedItem extends Model
         'item_unit', 
         'notes',
         'confiscation_date', 
-        'storage_location', 
+        'storage_location',
+        'pending_action',
     ];
 
     protected $casts = [
         'confiscation_date' => 'datetime',
+        'pending_action' => PendingActionEnum::class,
     ];
 
     public function passenger()
@@ -61,7 +64,7 @@ class ConfiscatedItem extends Model
 
     public function pickups()
     {
-        return $this->hasOne(PickupRecord::class, 'item_id');
+        return $this->hasMany(PickupRecord::class, 'item_id');
     }
 
     public function shipment()
@@ -105,4 +108,30 @@ class ConfiscatedItem extends Model
 
         return "rgba({$color}, {$opacity})";
     }
+
+    // Scopes untuk query pending_action
+    public function scopePendingShipmentConfirmation($query)
+    {
+        return $query->where('pending_action', 'shipment_confirmation');
+    }
+
+    public function scopePendingPaymentConfirmation($query)
+    {
+        return $query->where('pending_action', 'payment_confirmation');
+    }
+
+    public function scopeInStorage($query)
+    {
+        return $query->whereHas('latestStatusLog', function ($q) {
+            $q->where('status', 'IN_STORAGE');
+        });
+    }
+
+    public function scopeShipped($query)
+    {
+        return $query->whereHas('latestStatusLog', function ($q) {
+            $q->where('status', 'SHIPPED');
+        });
+    }
+
 }

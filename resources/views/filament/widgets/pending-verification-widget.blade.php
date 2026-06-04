@@ -25,16 +25,20 @@
             </div>
         </x-slot>
 
-        @if($this->getItems()->isNotEmpty())
-            {{-- SEARCH BAR --}}
-            <div class="mb-6">
+        {{-- SEARCH BAR (SELALU TAMPIL) --}}
+        <div class="mb-6">
+            <div class="relative">
+                <x-heroicon-m-magnifying-glass class="absolute left-3 top-3.5 w-5 h-5 text-gray-400 dark:text-gray-500 pointer-events-none" />
                 <input 
                     type="text" 
-                    wire:model.live="search"
+                    wire:model.live.debounce.300ms="search"
                     placeholder="Cari berdasarkan nama barang atau nama penumpang..."
-                    class="w-full px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                    class="w-full pl-10 pr-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                 />
             </div>
+        </div>
+
+        @if($this->getItems()->isNotEmpty())
 
             {{-- SELECT ALL & BULK ACTION --}}
             <div class="mb-6 flex items-center justify-between">
@@ -169,15 +173,38 @@
         @else
             {{-- Empty State --}}
             <div class="text-center py-12">
-                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gray-100 dark:bg-gray-800 mb-4">
-                    <x-heroicon-o-check-circle class="w-8 h-8 text-gray-400" />
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full mb-4"
+                     style="background-color: {{ $this->search ? '#FEE2E2' : '#F3F4F6' }};">
+                    @if($this->search)
+                        <x-heroicon-o-magnifying-glass class="w-8 h-8 text-gray-400" />
+                    @else
+                        <x-heroicon-o-check-circle class="w-8 h-8 text-gray-400" />
+                    @endif
                 </div>
-                <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">
-                    Tidak Ada Item Menunggu
-                </h3>
-                <p class="text-sm text-gray-500 dark:text-gray-400">
-                    Semua barang sitaan sudah diverifikasi
-                </p>
+                
+                @if($this->search)
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">
+                        Pencarian Tidak Ditemukan
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
+                        Tidak ada barang dengan nama "<span class="font-semibold">{{ $this->search }}</span>" atau penumpang yang cocok
+                    </p>
+                    <button 
+                        type="button"
+                        wire:click="clearSearch"
+                        class="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 bg-primary-50 hover:bg-primary-100 dark:bg-primary-900/20 dark:hover:bg-primary-900/30 rounded-lg transition"
+                    >
+                        <x-heroicon-m-x-mark class="w-4 h-4" />
+                        Bersihkan Pencarian
+                    </button>
+                @else
+                    <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-1">
+                        Tidak Ada Item Menunggu
+                    </h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400">
+                        Semua barang sitaan sudah diverifikasi
+                    </p>
+                @endif
             </div>
         @endif
     </x-filament::section>

@@ -19,4 +19,9 @@ class Passenger extends Model
     {
         return $this->hasMany(ConfiscatedItem::class);
     }
+
+    public function addresses()
+    {
+        return $this->hasMany(Address::class);
+    }
 }

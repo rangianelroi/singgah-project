@@ -101,51 +101,116 @@
                         </div>
                         {{-- Footer Aksi --}}
                         <div class="px-4 py-5 ml-auto bg-gradient-to-l from-gray-50 to-transparent dark:from-gray-800/60 dark:to-transparent border-l border-gray-100 dark:border-gray-700 flex flex-col gap-2 justify-center">
-                                {{-- Tombol WA --}}
-                                <x-filament::button
-                                    color="success"
-                                    tag="a"
-                                    icon="heroicon-o-chat-bubble-left-right"
-                                    href="{{ $this->getWhatsAppUrl($item) }}"
-                                    target="_blank"
-                                    size="sm"
-                                    class="shadow-md hover:shadow-lg transition-all duration-200"
-                                >
-                                    Chat WA
-                                </x-filament::button>
+                                {{-- TAHAP 1: Shipment Confirmation --}}
+                                @if($item->pending_action === 'shipment_confirmation')
+                                    {{-- Tombol WA (always clickable) --}}
+                                    <x-filament::button
+                                        color="success"
+                                        tag="a"
+                                        icon="heroicon-o-chat-bubble-left-right"
+                                        :href="$this->getWhatsAppUrl($item)"
+                                        target="_blank"
+                                        size="sm"
+                                        class="shadow-md hover:shadow-lg transition-all duration-200"
+                                    >
+                                        Chat WA
+                                    </x-filament::button>
 
-                                {{-- Tombol Catat Respon --}}
-                                <x-filament::button
-                                    color="gray"
-                                    size="sm"
-                                    icon="heroicon-o-pencil-square"
-                                    wire:click="mountAction('logResponseAction', { record: {{ $item->id }} })"
-                                    class="shadow-sm hover:shadow-md transition-all duration-200"
-                                >
-                                    Respon
-                                </x-filament::button>
+                                    {{-- Tombol Catat (Form Alamat) --}}
+                                    <x-filament::button
+                                        color="gray"
+                                        size="sm"
+                                        icon="heroicon-o-pencil-square"
+                                        wire:click="mountAction('confirmShipmentAction', { record: {{ $item->id }} })"
+                                        class="shadow-sm hover:shadow-md transition-all duration-200"
+                                    >
+                                        Catat
+                                    </x-filament::button>
+                                @endif
 
-                                {{-- Tombol Konfirmasi & Kirim --}}
-                                <x-filament::button
-                                    color="primary"
-                                    size="sm"
-                                    icon="heroicon-o-truck"
-                                    wire:click="mountAction('confirmShipmentAction', { record: {{ $item->id }} })"
-                                    class="shadow-md hover:shadow-lg transition-all duration-200"
-                                >
-                                    Kirim
-                                </x-filament::button>
-                                
-                                {{-- Tombol Batal --}}
-                                <x-filament::button
-                                    color="danger"
-                                    size="sm"
-                                    icon="heroicon-o-x-mark"
-                                    wire:click="mountAction('cancelShipmentProcessAction', { record: {{ $item->id }} })"
-                                    tooltip="Batalkan Proses"
-                                    class="shadow-sm hover:shadow-md transition-all duration-200"
-                                >
-                                </x-filament::button>
+                                {{-- TAHAP 2: Payment Confirmation --}}
+                                @if($item->pending_action === 'payment_confirmation')
+                                    {{-- Tombol Isi Harga --}}
+                                    <x-filament::button
+                                        color="warning"
+                                        size="sm"
+                                        icon="heroicon-o-calculator"
+                                        wire:click="mountAction('inputPriceAction', { record: {{ $item->id }} })"
+                                        class="shadow-sm hover:shadow-md transition-all duration-200"
+                                    >
+                                        Isi Harga
+                                    </x-filament::button>
+
+                                    {{-- Tombol WA (clickable hanya jika sudah ada harga) --}}
+                                    @php
+                                        $hasPrice = $item->shipment?->shipping_cost && $item->shipment?->service_fee;
+                                    @endphp
+                                    <x-filament::button
+                                        color="success"
+                                        tag="a"
+                                        icon="heroicon-o-chat-bubble-left-right"
+                                        :href="$hasPrice ? $this->getWhatsAppUrl($item) : '#'"
+                                        :disabled="!$hasPrice"
+                                        target="_blank"
+                                        size="sm"
+                                        class="shadow-md hover:shadow-lg transition-all duration-200"
+                                    >
+                                        Chat WA
+                                    </x-filament::button>
+
+                                    {{-- Tombol Catat (Form Pembayaran) --}}
+                                    <x-filament::button
+                                        color="gray"
+                                        size="sm"
+                                        icon="heroicon-o-pencil-square"
+                                        wire:click="mountAction('confirmPaymentAction', { record: {{ $item->id }} })"
+                                        class="shadow-sm hover:shadow-md transition-all duration-200"
+                                    >
+                                        Catat
+                                    </x-filament::button>
+                                @endif
+
+                                {{-- TAHAP 3: Payment Paid (Pengiriman Resi) --}}
+                                @if($item->pending_action === 'payment_paid')
+                                    {{-- Tombol Isi Resi --}}
+                                    <x-filament::button
+                                        color="warning"
+                                        size="sm"
+                                        icon="heroicon-o-hashtag"
+                                        wire:click="mountAction('inputTrackingAction', { record: {{ $item->id }} })"
+                                        class="shadow-sm hover:shadow-md transition-all duration-200"
+                                    >
+                                        Isi Resi
+                                    </x-filament::button>
+
+                                    {{-- Tombol WA (clickable hanya jika sudah ada resi) --}}
+                                    @php
+                                        $hasTracking = $item->shipment?->tracking_number;
+                                    @endphp
+                                    <x-filament::button
+                                        color="success"
+                                        tag="a"
+                                        icon="heroicon-o-chat-bubble-left-right"
+                                        :href="$hasTracking ? $this->getWhatsAppUrl($item) : '#'"
+                                        :disabled="!$hasTracking"
+                                        target="_blank"
+                                        size="sm"
+                                        class="shadow-md hover:shadow-lg transition-all duration-200"
+                                    >
+                                        Chat WA
+                                    </x-filament::button>
+
+                                    {{-- Tombol Catat (Konfirmasi Resi Dikirim) --}}
+                                    <x-filament::button
+                                        color="gray"
+                                        size="sm"
+                                        icon="heroicon-o-pencil-square"
+                                        wire:click="mountAction('confirmTrackingSentAction', { record: {{ $item->id }} })"
+                                        class="shadow-sm hover:shadow-md transition-all duration-200"
+                                    >
+                                        Catat
+                                    </x-filament::button>
+                                @endif
                         </div>
                     </div>
                 @endforeach

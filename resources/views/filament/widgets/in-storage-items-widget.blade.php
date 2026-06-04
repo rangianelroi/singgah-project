@@ -103,32 +103,9 @@
                         {{-- Footer Aksi --}}
                         <div class="px-4 py-5 ml-auto bg-gradient-to-l from-gray-50 to-transparent dark:from-gray-800/60 dark:to-transparent border-l border-gray-100 dark:border-gray-700 flex flex-col gap-2 justify-center">
                             <x-filament::button
-                                color="success"
-                                size="sm"
-                                tag="a"
-                                :href="$this->getWhatsAppUrl($item)"
-                                :disabled="empty($item->passenger->phone_number)"
-                                target="_blank"
-                                icon="heroicon-o-chat-bubble-left-right"
-                                class="shadow-md hover:shadow-lg transition-all duration-200"
-                            >
-                                Chat WA
-                            </x-filament::button>
-
-                            <x-filament::button
-                                color="gray"
-                                size="sm"
-                                wire:click="mountAction('manualLogAction', { record: {{ $item->id }} })"
-                                icon="heroicon-o-pencil-square"
-                                class="shadow-sm hover:shadow-md transition-all duration-200"
-                            >
-                                Catat
-                            </x-filament::button>
-
-                            <x-filament::button
                                 color="info"
                                 size="sm"
-                                wire:click="mountAction('startCommunication', { record: {{ $item->id }} })"
+                                wire:click="mountAction('processShipmentAction', { record: {{ $item->id }} })"
                                 icon="heroicon-o-play-circle"
                                 class="shadow-sm hover:shadow-md transition-all duration-200"
                             >

@@ -3,9 +3,13 @@
 namespace App\Filament\Widgets;
 
 use App\Models\ConfiscatedItem;
+use App\Models\ItemStatusLog;
 use Filament\Actions\Action;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\TextInput;
+use Filament\Forms\Components\Select;
+use Filament\Forms\Components\FileUpload;
+use Filament\Schemas\Components\Grid;
 use Filament\Forms\Contracts\HasForms;
 use Filament\Forms\Concerns\InteractsWithForms;
 use Filament\Actions\Concerns\InteractsWithActions;
@@ -14,7 +18,6 @@ use Filament\Notifications\Notification;
 use Filament\Widgets\Widget;
 use Illuminate\Contracts\Pagination\Paginator;
 use Livewire\Attributes\On;
-use Filament\Schemas\Components\Grid;
 
 class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
 {
@@ -30,142 +33,456 @@ class ShipmentConfirmationWidget extends Widget implements HasForms, HasActions
 
     public function getItems(): Paginator
     {
-        return ConfiscatedItem::with(['passenger', 'latestStatusLog', 'communications'])
-            ->whereHas('latestStatusLog', function ($query) {
-                $query->where('status', 'PENDING_SHIPMENT_CONFIRMATION');
-            })
+        return ConfiscatedItem::with(['passenger', 'latestStatusLog', 'communications', 'shipment.address'])
+            ->inStorage()
+            ->whereIn('pending_action', ['shipment_confirmation', 'payment_confirmation', 'payment_paid'])
             ->latest()
             ->paginate(5);
     }
 
     public static function canView(): bool
     {
-        return in_array(auth()->user()->role, ['team_leader_avsec', 'admin']);
+        return in_array(auth()->user()->role, ['team_leader_avsec']);
     }
 
     public function getWhatsAppUrl(ConfiscatedItem $item): string
     {
         if (empty($item->passenger->phone_number)) return '#';
         $passengerPhone = $item->passenger->phone_number;
-        $message = "Selamat sore Bpk/Ibu {$item->passenger->full_name}, mohon konfirmasi alamat pengiriman dan biaya pengiriman untuk barang Anda '{$item->item_name}'...";
-        return "https://wa.me/{$passengerPhone}?text=" . urlencode($message);
+        
+        // Tahap 1: Shipment Confirmation - tidak ada form, hanya offer
+        if ($item->pending_action === 'shipment_confirmation') {
+            $message = "Selamat sore Bpk/Ibu {$item->passenger->full_name}, kami ingin menawarkan layanan pengiriman untuk barang Anda '{$item->item_name}'...";
+            return "https://wa.me/{$passengerPhone}?text=" . urlencode($message);
+        }
+        
+        // Tahap 2: Payment Confirmation - menunggu form harga diisi dulu
+        if ($item->pending_action === 'payment_confirmation') {
+            $shipment = $item->shipment;
+            if (!$shipment?->shipping_cost) {
+                // Belum ada data harga, disable link
+                return '#';
+            }
+            $totalPrice = ($shipment?->shipping_cost ?? 0) + ($shipment?->service_fee ?? 0);
+            $message = "Silakan lakukan transfer pembayaran sebesar Rp " . number_format($totalPrice, 0, ',', '.') 
+                . " untuk pengiriman barang Anda '{$item->item_name}' ke " . $shipment?->address?->city;
+            return "https://wa.me/{$passengerPhone}?text=" . urlencode($message);
+        }
+        
+        // Tahap 3: Payment Paid - menunggu form resi diisi dulu
+        if ($item->pending_action === 'payment_paid') {
+            $shipment = $item->shipment;
+            if (!$shipment?->tracking_number) {
+                // Belum ada nomor resi, disable link
+                return '#';
+            }
+            $message = "Barang Anda '{$item->item_name}' sudah dikirim. No. Resi: {$shipment->tracking_number}. Silakan lacak di kurir.";
+            return "https://wa.me/{$passengerPhone}?text=" . urlencode($message);
+        }
+        
+        return '#';
     }
 
-    // --- AKSI: CATAT RESPON ---
-    public function logResponseAction(): Action
-    {
-        return Action::make('logResponseAction') // Samakan nama ini dengan di Blade
-            ->label('Catat Respon')
-            ->icon('heroicon-o-pencil-square')
-            ->color('gray')
-            ->modalHeading('Catat Respon dari Penumpang')
-            ->form([
-                Textarea::make('message_summary')
-                    ->label('Isi Respon atau Catatan')
-                    ->required()
-                    ->placeholder('Contoh: Penumpang setuju, alamat akan dikirim nanti.'),
-            ])
-            ->action(function (array $data, array $arguments) {
-                $record = ConfiscatedItem::find($arguments['record'] ?? null);
-                if (!$record) return;
-
-                $record->communications()->create([
-                    'user_id' => auth()->id(),
-                    'channel' => 'whatsapp',
-                    'message_summary' => $data['message_summary'],
-                    'sent_at' => now(),
-                ]);
-
-                Notification::make()->title('Respon berhasil dicatat!')->success()->send();
-            });
-    }
-
-    // --- AKSI: BATALKAN ---
-    public function cancelShipmentProcessAction(): Action
-    {
-        return Action::make('cancelShipmentProcessAction')
-            ->label('Batalkan')
-            ->icon('heroicon-o-x-circle')
-            ->color('danger')
-            ->requiresConfirmation()
-            ->modalDescription('Status akan dikembalikan ke "IN_STORAGE".')
-            ->action(function (array $arguments) {
-                $record = ConfiscatedItem::find($arguments['record'] ?? null);
-                if (!$record) return;
-
-                $record->statusLogs()->create([
-                    'status' => 'IN_STORAGE',
-                    'user_id' => auth()->id(),
-                    'notes' => 'Proses pengiriman dibatalkan oleh petugas.',
-                ]);
-                
-                Notification::make()->title('Proses Dibatalkan')->body('Status kembali ke Gudang.')->warning()->send();
-            });
-    }
-    
-    // --- AKSI: KONFIRMASI & KIRIM (FIXED) ---
+    /**
+     * Action: Konfirmasi Pengiriman (Shipment)
+     */
     public function confirmShipmentAction(): Action
     {
         return Action::make('confirmShipmentAction')
-            ->label('Konfirmasi & Kirim')
-            ->icon('heroicon-o-truck')
-            ->color('success')
+            ->label('Catat')
+            ->icon('heroicon-o-pencil-square')
+            ->modalHeading('Konfirmasi Pengiriman')
             ->modalWidth('2xl')
-            ->modalSubmitActionLabel('Simpan Pengiriman')
-            // Mengisi form awal dengan data penumpang
-            ->fillForm(function (array $arguments) {
-                $record = ConfiscatedItem::find($arguments['record'] ?? null);
-                return [
-                    'recipient_name' => $record?->passenger->full_name,
-                    'recipient_phone' => $record?->passenger->phone_number,
-                    'country' => 'Indonesia',
-                ];
-            })
             ->form([
-                TextInput::make('recipient_name')->required()->label('Nama Penerima'),
-                TextInput::make('recipient_phone')->tel()->required()->label('No. Telepon Penerima'),
-                Textarea::make('street_address')->required()->label('Alamat Jalan')->columnSpanFull(),
-                
-                // Grid layout agar lebih rapi
-                    Grid::make(2)->schema([
-                    TextInput::make('subdistrict')->required()->label('Kelurahan/Desa'),
-                    TextInput::make('district')->required()->label('Kecamatan'),
-                    TextInput::make('city')->required()->label('Kota/Kabupaten'),
-                    TextInput::make('province')->required()->label('Provinsi'),
-                    TextInput::make('postal_code')->required()->label('Kode Pos'),
-                    TextInput::make('country')->required()->label('Negara')->default('Indonesia'),
-                ]),
+                Select::make('shipment_response')
+                    ->label('Respon Penumpang')
+                    ->options([
+                        'yes' => '✅ Setuju Pengiriman',
+                        'no' => '❌ Tolak Pengiriman',
+                    ])
+                    ->required()
+                    ->reactive()
+                    ->columnSpanFull(),
 
-                TextInput::make('shipping_cost')->numeric()->prefix('Rp')->label('Ongkos Kirim')->required(),
-                TextInput::make('tracking_number')->label('Nomor Resi (Opsional)'),
+                // Form untuk YES
+                Grid::make(2)->schema([
+                    TextInput::make('recipient_name')
+                        ->label('Nama Penerima')
+                        ->required(),
+                    TextInput::make('recipient_phone')
+                        ->label('No. Telepon')
+                        ->tel()
+                        ->required(),
+                ])->visible(fn ($get) => $get('shipment_response') === 'yes'),
+
+                Textarea::make('street_address')
+                    ->label('Alamat Jalan')
+                    ->required()
+                    ->visible(fn ($get) => $get('shipment_response') === 'yes')
+                    ->columnSpanFull(),
+
+                Grid::make(4)->schema([
+                    TextInput::make('subdistrict')->label('Kelurahan')->nullable(),
+                    TextInput::make('district')->label('Kecamatan')->nullable(),
+                    TextInput::make('city')->label('Kota')->required(),
+                    TextInput::make('province')->label('Provinsi')->required(),
+                    TextInput::make('postal_code')->label('Kode Pos')->required(),
+                    TextInput::make('country')->label('Negara')->required()->default('Indonesia'),
+                ])->visible(fn ($get) => $get('shipment_response') === 'yes'),
+
+                // Form untuk NO
+                Textarea::make('rejection_reason')
+                    ->label('Alasan Penolakan')
+                    ->visible(fn ($get) => $get('shipment_response') === 'no')
+                    ->columnSpanFull(),
             ])
             ->action(function (array $data, array $arguments) {
                 $record = ConfiscatedItem::find($arguments['record'] ?? null);
-                if (!$record) return;
+                if (!$record) {
+                    Notification::make()->title('Error')->body('Barang tidak ditemukan')->danger()->send();
+                    return;
+                }
 
-                // Simpan ke tabel shipment
-                $record->shipment()->create([
-                    'recipient_name' => $data['recipient_name'],
-                    'recipient_phone' => $data['recipient_phone'],
-                    'street_address' => $data['street_address'],
-                    'subdistrict' => $data['subdistrict'],
-                    'district' => $data['district'],
-                    'city' => $data['city'],
-                    'province' => $data['province'],
-                    'postal_code' => $data['postal_code'],
-                    'country' => $data['country'],
-                    'shipping_cost' => $data['shipping_cost'],
-                    'tracking_number' => $data['tracking_number'],
-                ]);
+                if ($data['shipment_response'] === 'yes') {
+                    // Create or update address
+                    $address = $record->passenger->addresses()->create([
+                        'recipient_name' => $data['recipient_name'],
+                        'recipient_phone' => $data['recipient_phone'],
+                        'street_address' => $data['street_address'],
+                        'subdistrict' => $data['subdistrict'] ?? null,
+                        'district' => $data['district'] ?? null,
+                        'city' => $data['city'],
+                        'province' => $data['province'],
+                        'postal_code' => $data['postal_code'],
+                        'country' => $data['country'],
+                    ]);
 
-                // Update status log
-                $record->statusLogs()->create([
-                    'status' => 'SHIPPED',
-                    'user_id' => auth()->id(),
-                    'notes' => 'Barang dikirim. Resi: ' . ($data['tracking_number'] ?? '-'),
-                ]);
+                    // Create or update shipment with ONLY address_id reference
+                    // IMPORTANT: Address details are stored in Address model, not duplicated here
+                    $shipment = $record->shipment()->updateOrCreate(
+                        ['item_id' => $record->id],
+                        [
+                            'address_id' => $address->id,
+                            'payment_status' => 'pending',
+                        ]
+                    );
 
-                Notification::make()->title('Pengiriman Disimpan!')->success()->send();
+                    // Update pending_action to payment_confirmation
+                    $record->update(['pending_action' => 'payment_confirmation']);
+                    
+                    $record->communications()->create([
+                        'user_id' => auth()->id(),
+                        'channel' => 'other',
+                        'communication_type' => 'shipment_inquiry',
+                        'communication_status' => 'shipment_confirmed',
+                        'message_summary' => "Setuju dikirim ke {$data['city']}",
+                        'response_received' => true,
+                        'responded_at' => now(),
+                        'response_notes' => $data['recipient_name'] . " - " . $data['street_address'],
+                        'sent_at' => now(),
+                    ]);
+
+                    Notification::make()
+                        ->title('Pengiriman Dikonfirmasi')
+                        ->body('Menunggu konfirmasi pembayaran')
+                        ->success()
+                        ->send();
+                } else {
+                    $record->update(['pending_action' => null]);
+                    
+                    $record->communications()->create([
+                        'user_id' => auth()->id(),
+                        'channel' => 'other',
+                        'communication_type' => 'shipment_inquiry',
+                        'communication_status' => 'shipment_declined',
+                        'message_summary' => 'Barang tidak ingin dikirim',
+                        'response_received' => true,
+                        'responded_at' => now(),
+                        'response_notes' => $data['rejection_reason'] ?? '',
+                        'sent_at' => now(),
+                    ]);
+
+                    Notification::make()
+                        ->title('Pengiriman Ditolak')
+                        ->body('Barang kembali ke gudang')
+                        ->warning()
+                        ->send();
+                }
+
+                $this->dispatch('item-processed');
+            });
+    }
+
+    /**
+     * Action: Input Harga Pengiriman & Layanan
+     */
+    public function inputPriceAction(): Action
+    {
+        return Action::make('inputPriceAction')
+            ->label('Isi Harga')
+            ->icon('heroicon-o-pencil-square')
+            ->modalHeading('Input Harga Pengiriman')
+            ->modalWidth('md')
+            ->form([
+                Grid::make(2)->schema([
+                    TextInput::make('shipping_cost')
+                        ->label('Harga Pengiriman (Rp)')
+                        ->numeric()
+                        ->required()
+                        ->inputMode('decimal'),
+                    TextInput::make('service_fee')
+                        ->label('Harga Layanan (Rp)')
+                        ->numeric()
+                        ->required()
+                        ->inputMode('decimal'),
+                ])->columnSpanFull(),
+            ])
+            ->action(function (array $data, array $arguments) {
+                $record = ConfiscatedItem::find($arguments['record'] ?? null);
+                if (!$record) {
+                    Notification::make()->title('Error')->body('Barang tidak ditemukan')->danger()->send();
+                    return;
+                }
+
+                $shipment = $record->shipment;
+                if ($shipment) {
+                    $shipment->update([
+                        'shipping_cost' => $data['shipping_cost'],
+                        'service_fee' => $data['service_fee'],
+                    ]);
+                }
+
+                Notification::make()
+                    ->title('Harga Tersimpan')
+                    ->body('Silakan chat WA untuk memberitahu harga ke penumpang')
+                    ->success()
+                    ->send();
+                    
+                $this->dispatch('item-processed');
+            });
+    }
+
+    /**
+     * Action: Konfirmasi Pembayaran
+     */
+    public function confirmPaymentAction(): Action
+    {
+        return Action::make('confirmPaymentAction')
+            ->label('Catat')
+            ->icon('heroicon-o-pencil-square')
+            ->modalHeading('Apakah Sudah Dibayar?')
+            ->modalWidth('md')
+            ->form([
+                Select::make('payment_response')
+                    ->label('Status Pembayaran')
+                    ->options([
+                        'yes' => '✅ Sudah Dibayar',
+                        'no' => '❌ Belum Dibayar',
+                    ])
+                    ->required()
+                    ->reactive()
+                    ->columnSpanFull(),
+
+                FileUpload::make('payment_proof_path')
+                    ->label('Bukti Transfer (Foto/Screenshot)')
+                    ->image()
+                    ->disk('public')
+                    ->directory('payment-proofs')
+                    ->required()
+                    ->visible(fn ($get) => $get('payment_response') === 'yes')
+                    ->columnSpanFull(),
+
+                Textarea::make('payment_fail_reason')
+                    ->label('Keterangan')
+                    ->visible(fn ($get) => $get('payment_response') === 'no')
+                    ->columnSpanFull(),
+            ])
+            ->action(function (array $data, array $arguments) {
+                $record = ConfiscatedItem::find($arguments['record'] ?? null);
+                if (!$record) {
+                    Notification::make()->title('Error')->body('Barang tidak ditemukan')->danger()->send();
+                    return;
+                }
+
+                $shipment = $record->shipment;
+
+                if ($data['payment_response'] === 'yes') {
+                    // Update shipment dengan bukti pembayaran
+                    if ($shipment) {
+                        $shipment->update([
+                            'payment_proof_path' => $data['payment_proof_path'] ?? null,
+                            'payment_status' => 'paid',
+                        ]);
+                    }
+
+                    // Update pending_action ke payment_paid (menunggu resi)
+                    $record->update(['pending_action' => 'payment_paid']);
+                    
+                    $record->communications()->create([
+                        'user_id' => auth()->id(),
+                        'channel' => 'other',
+                        'communication_type' => 'payment_follow_up',
+                        'communication_status' => 'payment_confirmed',
+                        'message_summary' => 'Pembayaran dikonfirmasi. Menunggu pengiriman resi.',
+                        'response_received' => true,
+                        'responded_at' => now(),
+                        'response_notes' => "Bukti: {$data['payment_proof_path']}",
+                        'sent_at' => now(),
+                    ]);
+
+                    Notification::make()
+                        ->title('Pembayaran Dikonfirmasi')
+                        ->body('Lanjut ke tahap pengiriman resi')
+                        ->success()
+                        ->send();
+                } else {
+                    // Tolak pembayaran - kembalikan ke gudang
+                    $record->update(['pending_action' => null]);
+
+                    if ($shipment) {
+                        $shipment->update(['payment_status' => 'failed']);
+                    }
+
+                    $record->communications()->create([
+                        'user_id' => auth()->id(),
+                        'channel' => 'other',
+                        'communication_type' => 'payment_follow_up',
+                        'communication_status' => 'payment_failed',
+                        'message_summary' => 'Pembayaran belum diterima',
+                        'response_received' => true,
+                        'responded_at' => now(),
+                        'response_notes' => $data['payment_fail_reason'] ?? '',
+                        'sent_at' => now(),
+                    ]);
+
+                    Notification::make()
+                        ->title('Pembayaran Belum Dikonfirmasi')
+                        ->body('Barang kembali ke gudang')
+                        ->warning()
+                        ->send();
+                }
+
+                $this->dispatch('item-processed');
+            });
+    }
+
+    /**
+     * Action: Input Nomor Resi (setelah pembayaran diterima)
+     */
+    public function inputTrackingAction(): Action
+    {
+        return Action::make('inputTrackingAction')
+            ->label('Isi Resi')
+            ->icon('heroicon-o-pencil-square')
+            ->modalHeading('Input Nomor Resi')
+            ->modalWidth('md')
+            ->form([
+                TextInput::make('tracking_number')
+                    ->label('Nomor Resi')
+                    ->required()
+                    ->columnSpanFull(),
+            ])
+            ->action(function (array $data, array $arguments) {
+                $record = ConfiscatedItem::find($arguments['record'] ?? null);
+                if (!$record) {
+                    Notification::make()->title('Error')->body('Barang tidak ditemukan')->danger()->send();
+                    return;
+                }
+
+                $shipment = $record->shipment;
+                if ($shipment) {
+                    $shipment->update([
+                        'tracking_number' => $data['tracking_number'],
+                    ]);
+                }
+
+                Notification::make()
+                    ->title('Nomor Resi Tersimpan')
+                    ->body('Silakan chat WA untuk mengirimkan resi ke penumpang')
+                    ->success()
+                    ->send();
+                    
+                $this->dispatch('item-processed');
+            });
+    }
+
+    /**
+     * Action: Konfirmasi Pengiriman Resi
+     */
+    public function confirmTrackingSentAction(): Action
+    {
+        return Action::make('confirmTrackingSentAction')
+            ->label('Catat')
+            ->icon('heroicon-o-pencil-square')
+            ->modalHeading('Apakah Resi Sudah Dikirim?')
+            ->modalWidth('md')
+            ->form([
+                Select::make('tracking_sent')
+                    ->label('Status Pengiriman Resi')
+                    ->options([
+                        'yes' => '✅ Sudah Dikirim',
+                        'no' => '❌ Belum Dikirim',
+                    ])
+                    ->required()
+                    ->reactive()
+                    ->columnSpanFull(),
+
+                Textarea::make('tracking_notes')
+                    ->label('Catatan')
+                    ->visible(fn ($get) => $get('tracking_sent') === 'no')
+                    ->columnSpanFull(),
+            ])
+            ->action(function (array $data, array $arguments) {
+                $record = ConfiscatedItem::find($arguments['record'] ?? null);
+                if (!$record) {
+                    Notification::make()->title('Error')->body('Barang tidak ditemukan')->danger()->send();
+                    return;
+                }
+
+                $shipment = $record->shipment;
+
+                if ($data['tracking_sent'] === 'yes') {
+                    // Update shipment tracking sent time
+                    if ($shipment) {
+                        $shipment->update([
+                            'tracking_number_sent_at' => now(),
+                        ]);
+                    }
+
+                    // Update item status to SHIPPED and clear pending_action
+                    $record->update(['pending_action' => null]);
+                    
+                    ItemStatusLog::create([
+                        'item_id' => $record->id,
+                        'user_id' => auth()->id(),
+                        'status' => 'SHIPPED',
+                        'notes' => "Nomor resi sudah dikirim ke penumpang. Resi: {$shipment?->tracking_number}",
+                    ]);
+
+                    $record->communications()->create([
+                        'user_id' => auth()->id(),
+                        'channel' => 'other',
+                        'communication_type' => 'shipment_inquiry',
+                        'communication_status' => 'tracking_sent',
+                        'message_summary' => "Nomor resi dikirim: {$shipment?->tracking_number}",
+                        'response_received' => false,
+                        'sent_at' => now(),
+                    ]);
+
+                    Notification::make()
+                        ->title('Barang Dikirim')
+                        ->body('Barang pindah ke widget Shipped Items')
+                        ->success()
+                        ->send();
+                } else {
+                    Notification::make()
+                        ->title('Belum Dikirim')
+                        ->body('Silakan kirimkan resi ke penumpang terlebih dahulu')
+                        ->warning()
+                        ->send();
+                }
+
+                $this->dispatch('item-processed');
             });
     }
 }

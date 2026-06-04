@@ -56,6 +56,12 @@ class PendingVerificationWidget extends Widget implements HasActions, HasForms
         $this->resetPage();
     }
 
+    public function clearSearch()
+    {
+        $this->search = '';
+        $this->resetPage();
+    }
+
     public function toggleSelectAll()
     {
         if (count($this->selectedItems) === count($this->getItems())) {

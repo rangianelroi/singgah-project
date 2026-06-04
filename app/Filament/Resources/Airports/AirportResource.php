@@ -16,9 +16,15 @@ use Filament\Tables\Table;
 
 class AirportResource extends Resource
 {
-    protected static ?string $model = Airport::class;
+    protected static ?string $modelLabel = 'Bandara';
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static ?string $navigationLabel = 'Bandara';
+
+    protected static ?string $pluralModelLabel = 'Bandara';
+
+    protected static string|BackedEnum|null $navigationIcon = Heroicon:: OutlinedMapPin;
+
+    protected static ?string $model = Airport::class;
 
     public static function form(Schema $schema): Schema
     {

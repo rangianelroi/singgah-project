@@ -42,7 +42,7 @@ class StorageManagementWidget extends Widget implements HasActions, HasForms
 
     public static function canView(): bool
     {
-        return in_array(auth()->user()->role, ['team_leader_avsec', 'admin']);
+        return in_array(auth()->user()->role, ['team_leader_avsec']);
     }
 
     /**

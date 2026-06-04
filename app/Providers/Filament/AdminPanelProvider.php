@@ -48,7 +48,7 @@ class AdminPanelProvider extends PanelProvider
             ->brandName('SISTEM INFORMASI BARANG TERTAHAN')
 
             // 3. Atur Logo (jika Anda punya file logo)
-            //->brandLogo(asset('assets/images/logo-injourney.png')) 
+            ->brandLogo(fn() => view('filament.dashboard.logo'))
             
             // 4. Atur Favicon (ikon di tab browser)
             ->favicon(asset('assets/logo/box.svg')) 
